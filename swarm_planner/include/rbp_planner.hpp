@@ -365,7 +365,6 @@ private:
                     A_cont;
 
     }
-
     // Equality constraints condition vector deq
     void build_deq() {
 //        deq_obj.reset(new Eigen::MatrixXd(N * (2*n + (M-1)*n), outdim));
@@ -391,7 +390,21 @@ private:
             deq.block(qi * deq_p_rows, 0, deq_p_rows, deq_p_cols) << d_waypoints,
                     d_cont;
         }
+
+    /* for debuging. convert data-type into generic type of double array. */
+    double temp_deq[525][3];
+    for( int i=0;i<525;i++){
+        for( int j=0;j<3;j++){
+            temp_deq[i][j] = deq(i,j);
+        }
+
+
     }
+
+    }
+
+
+    
 
     // Inequality constraints condition vector dlq
     void build_dlq(){
@@ -468,6 +481,7 @@ private:
 //        dlq_obj->block(dlq_box.rows(), 0, dlq_rel.rows(), dlq_rel.cols()) = dlq_rel;
         dlq << dlq_box,
                dlq_rel;
+
     }
 
     void build_dummy(){
@@ -585,6 +599,7 @@ private:
 //        }
 
         // Inequality Constraints
+
         for (int k = 0; k < outdim; k++) {
             for (int qi = 0; qi < N; qi++) {
                 if (qi < gi * param.batch_size || qi >= (gi + 1) * param.batch_size) {
@@ -597,6 +612,7 @@ private:
                 }
             }
         }
+        #if 0        
         int offset_box = 2 * N * offset_quad;
         int iter = 0;
         for (int qi = 0; qi < N; qi++) {
@@ -642,7 +658,9 @@ private:
                 iter++;
             }
         }
+        #endif
         model.add(c);
+        
 
         count_lq = c.getSize() - count_eq;
     }

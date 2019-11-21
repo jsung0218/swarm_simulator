@@ -77,17 +77,19 @@ public:
         traj_coef_pubs.resize(qn);
         traj_pubs.resize(qn);
         relBox_pubs.resize(qn);
-        for(int qi = 0; qi < qn; qi++){
-            std::string mav_name = "/mav" + std::to_string(qi);
-            traj_coef_pubs[qi] = nh.advertise<std_msgs::Float64MultiArray>("/traj_coef" + mav_name, 1);
-            traj_pubs[qi] = nh.advertise<nav_msgs::Path>("/desired_trajectory" + mav_name, 1);
-            relBox_pubs[qi] = nh.advertise<visualization_msgs::MarkerArray>("/relative_box" + mav_name, 1);
-        }
-        traj_info_pub = nh.advertise<std_msgs::Float64MultiArray>("/traj_info", 1);
-        initTraj_pub = nh.advertise<visualization_msgs::MarkerArray>("/initTraj", 1);
-        obsBox_pub = nh.advertise<visualization_msgs::MarkerArray>("/obstacle_box", 1);
-        feasibleBox_pub = nh.advertise<visualization_msgs::MarkerArray>("/feasible_box", 1);
-        colBox_pub = nh.advertise<visualization_msgs::MarkerArray>("/collision_model", 1);
+
+
+        // for(int qi = 0; qi < qn; qi++)
+        int qi = 0;
+        std::string mav_name = "/mav" + param.mav_name; 
+        traj_coef_pubs[qi] = nh.advertise<std_msgs::Float64MultiArray>("/traj_coef" + mav_name, 1);
+        traj_pubs[qi] = nh.advertise<nav_msgs::Path>("/desired_trajectory" + mav_name, 1);
+        relBox_pubs[qi] = nh.advertise<visualization_msgs::MarkerArray>("/relative_box" + mav_name, 1);
+        traj_info_pub = nh.advertise<std_msgs::Float64MultiArray>("/traj_info"+ mav_name, 1);
+        initTraj_pub = nh.advertise<visualization_msgs::MarkerArray>("/initTraj"+ mav_name, 1);
+        obsBox_pub = nh.advertise<visualization_msgs::MarkerArray>("/obstacle_box"+ mav_name, 1);
+        feasibleBox_pub = nh.advertise<visualization_msgs::MarkerArray>("/feasible_box"+ mav_name, 1);
+        colBox_pub = nh.advertise<visualization_msgs::MarkerArray>("/collision_model"+ mav_name, 1);
 
         msgs_traj.resize(qn);
         msgs_relBox.resize(qn);

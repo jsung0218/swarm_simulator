@@ -33,8 +33,8 @@ void octomapCallback(const octomap_msgs::Octomap& octomap_msg)
 }
 
 int main(int argc, char* argv[]) {
-    ROS_INFO("Swarm Trajectory Planner");
-    ros::init (argc, argv, "swarm_traj_planner_rbp");
+    ROS_INFO("Follower Trajectory Planner");
+    ros::init (argc, argv, "MPFollower_node");
     ros::NodeHandle nh( "~" );
     ros::Subscriber octomap_sub = nh.subscribe( "/octomap_full", 1, octomapCallback );
 
@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     param.setColor(4);
-    param.setColorUse(0);
+    param.setColorUse(2);
 
     // Submodules
     std::shared_ptr<DynamicEDTOctomap> distmap_obj;

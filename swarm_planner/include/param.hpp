@@ -9,6 +9,7 @@ namespace SwarmPlanning{
     public:
         bool log;
         std::string package_path;
+        std::string mav_name;
 
         double world_x_min;
         double world_y_min;
@@ -35,14 +36,18 @@ namespace SwarmPlanning{
         int phi; // desired derivatives
 
         std::vector<std::vector<double>> color;
+        std::vector<double> color_used;
+        int colorindex;
 
         bool setROSParam(const ros::NodeHandle &nh);
         void setColor(int qn);
+        void setColorUse(int qi);
+
     };
 
     bool Param::setROSParam(const ros::NodeHandle &nh) {
         nh.param<bool>("log", log, false);
-
+        nh.param<std::string>("mav_name", mav_name, "mav");
         nh.param<double>("world/x_min", world_x_min, -5);
         nh.param<double>("world/y_min", world_y_min, -5);
         nh.param<double>("world/z_min", world_z_min, 0);
@@ -67,6 +72,7 @@ namespace SwarmPlanning{
         nh.param<int>("plan/N_b", N_b, 0);
         nh.param<int>("plan/iteration", iteration, 1);
 
+        
         package_path = ros::package::getPath("swarm_planner");
 
         return true;
@@ -120,4 +126,14 @@ namespace SwarmPlanning{
             }
         }
     }
+
+    
+    void Param::setColorUse(int qi){
+        printf("========= color sel : %d", qi);
+        color_used = color[qi];
+    }
 }
+    
+
+
+

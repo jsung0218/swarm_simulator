@@ -4,6 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Path2
         - /MarkerArray1
         - /MarkerArray2
         - /MarkerArray2/Namespaces1
@@ -15,6 +16,8 @@ Panels:
         - /MarkerArray5/Namespaces1
         - /MarkerArray6
         - /MarkerArray6/Namespaces1
+        - /MarkerArray7
+        - /MarkerArray7/Namespaces1
       Splitter Ratio: 0.535377383
     Tree Height: 812
   - Class: rviz/Selection
@@ -64,13 +67,19 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        mav0/base_link:
+          Value: true
+        world:
+          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: false
       Show Axes: false
       Show Names: false
       Tree:
-        {}
+        world:
+          mav0/base_link:
+            {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -93,7 +102,7 @@ Visualization Manager:
       Radius: 0.0299999993
       Shaft Diameter: 0.100000001
       Shaft Length: 0.100000001
-      Topic: /desired_trajectory/mav0
+      Topic: /desired_trajectory/mavmaster
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -116,146 +125,56 @@ Visualization Manager:
       Radius: 0.0299999993
       Shaft Diameter: 0.100000001
       Shaft Length: 0.100000001
-      Topic: /desired_trajectory/mav1
+      Topic: /desired_trajectory/mavslave
       Unreliable: false
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 127; 255; 0
+    - Class: rviz/MarkerArray
       Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.0299999993
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
-      Topic: /desired_trajectory/mav2
-      Unreliable: false
+      Marker Topic: /collision_model/mavmaster
+      Name: MarkerArray
+      Namespaces:
+        colBox: true
+      Queue Size: 10
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 0; 255; 64
+    - Class: rviz/MarkerArray
       Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.0299999993
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
-      Topic: /desired_trajectory/mav3
-      Unreliable: false
+      Marker Topic: /collision_model/mavslave
+      Name: MarkerArray
+      Namespaces:
+        colBox: true
+      Queue Size: 10
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 0; 255; 255
+    - Class: rviz/MarkerArray
       Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.0299999993
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
-      Topic: /desired_trajectory/mav4
-      Unreliable: false
+      Marker Topic: /initTraj/mavmaster
+      Name: MarkerArray
+      Namespaces:
+        mav0: true
+      Queue Size: 100
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 0; 64; 255
+    - Class: rviz/MarkerArray
       Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.0299999993
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
-      Topic: /desired_trajectory/mav5
-      Unreliable: false
+      Marker Topic: /initTraj/mavslave
+      Name: MarkerArray
+      Namespaces:
+        mav0: true
+      Queue Size: 100
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 128; 0; 255
+    - Class: rviz/MarkerArray
       Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.0299999993
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
-      Topic: /desired_trajectory/mav6
-      Unreliable: false
+      Marker Topic: /obstacle_box/mavmaster
+      Name: MarkerArray
+      Namespaces:
+        mav0: true
+      Queue Size: 100
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 255; 0; 191
+    - Class: rviz/MarkerArray
       Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.0299999993
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
-      Topic: /desired_trajectory/mav7
-      Unreliable: false
+      Marker Topic: /obstacle_box/mavslave
+      Name: MarkerArray
+      Namespaces:
+        mav0: true
+      Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
@@ -263,46 +182,6 @@ Visualization Manager:
       Name: MarkerArray
       Namespaces:
         map: true
-      Queue Size: 10
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /relative_box/mav5
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 10
-      Value: false
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /obstacle_box
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /initTraj
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /feasible_box
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /collision_model
-      Name: MarkerArray
-      Namespaces:
-        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -330,25 +209,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 15.0631609
+      Distance: 22.0440655
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.696878433
-        Y: -2.45196772
-        Z: 0.0147125814
+        X: 0.73708427
+        Y: -1.11914861
+        Z: -0.433716893
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.464797318
+      Pitch: 1.00979626
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 1.63
+      Yaw: 1.93000102
     Saved: ~
 Window Geometry:
   Displays:

@@ -85,35 +85,14 @@ target_link_libraries(swarm_traj_planner_rbp
   dl
 )
 
-add_executable(swarm_traj_planner_rbp_test_all src/swarm_traj_planner_rbp_test_all.cpp)
-target_link_libraries(swarm_traj_planner_rbp_test_all
+
+
+
+add_executable(MPFollower src/MPFollower.cpp)
+target_link_libraries(MPFollower
   ${catkin_LIBRARIES}
   ${OCTOMAP_INCLUDE_DIRS}
   ${SIPP_LINK_LIBS}
-  ${PYTHON_LIBRARIES}
-  m
-  ilocplex
-  cplex
-  concert
-  pthread
-  dl
-)
-
-add_executable(swarm_traj_planner_scp src/swarm_traj_planner_scp.cpp)
-target_link_libraries(swarm_traj_planner_scp
-  ${catkin_LIBRARIES}
-  ${PYTHON_LIBRARIES}
-  m
-  ilocplex
-  cplex
-  concert
-  pthread
-  dl
-)
-
-add_executable(test_traj_solver test/test_traj_solver.cpp)
-target_link_libraries(swarm_traj_planner_scp
-  ${catkin_LIBRARIES}
   ${PYTHON_LIBRARIES}
   m
   ilocplex
