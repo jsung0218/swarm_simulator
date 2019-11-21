@@ -1,0 +1,36 @@
+octomap_server:
+  color: {a: 0.2, b: 0.2, g: 0.2, r: 0.2}
+  compress_map: true
+  filter_ground: false
+  filter_speckles: false
+  frame_id: world
+  ground_filter_angle: 0.15
+  ground_filter_distance: 0.04
+  ground_filter_plane_distance: 0.07
+  height_map: false
+  incremental_2D_projection: false
+  max_depth: 16
+  occupancy_max_z: 100.0
+  occupancy_min_z: -100.0
+  pointcloud_max_z: 100.0
+  pointcloud_min_z: -100.0
+  resolution: 0.1
+  sensor_model: {max_range: 5.0}
+  sensor_model_hit: 0.7
+  sensor_model_max: 0.97
+  sensor_model_max_range: 5.0
+  sensor_model_min: 0.12
+  sensor_model_miss: 0.4
+random_map_generator:
+  mission: /home/jsung9/catkin_ws/src/swarm_simulator/swarm_planner/missions/mission_8agents_15.json
+  world: {h_max: 2.5, h_min: 1.0, margin: 0.5, obs_num: 20, r_max: 0.3, r_min: 0.3,
+    resolution: 0.1, x_max: 5, x_min: -5, y_max: 5, y_min: -5, z_max: 2.5, z_min: 0.0}
+rosdistro: 'kinetic
+
+  '
+roslaunch:
+  uris: {host_localhost__33669: 'http://localhost:33669/'}
+rosversion: '1.12.14
+
+  '
+run_id: 76ecebae-0b56-11ea-84fb-d0577b81a114
