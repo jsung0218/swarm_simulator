@@ -3,12 +3,12 @@ project(swarm_planner)
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -g3 -O3 -m64 -Ofast -flto -msse2 -msse3 -march=native  -mfpmath=sse")
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set(CMAKE_CXX_STANDARD 14)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
-#set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
 
 #ECBS
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/ecbs)
@@ -100,6 +100,18 @@ target_link_libraries(swarm_traj_planner_rbp_test_all
 )
 
 add_executable(swarm_traj_planner_scp src/swarm_traj_planner_scp.cpp)
+target_link_libraries(swarm_traj_planner_scp
+  ${catkin_LIBRARIES}
+  ${PYTHON_LIBRARIES}
+  m
+  ilocplex
+  cplex
+  concert
+  pthread
+  dl
+)
+
+add_executable(test_traj_solver test/test_traj_solver.cpp)
 target_link_libraries(swarm_traj_planner_scp
   ${catkin_LIBRARIES}
   ${PYTHON_LIBRARIES}
