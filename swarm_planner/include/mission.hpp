@@ -21,7 +21,7 @@ namespace SwarmPlanning {
 
     bool Mission::setMission(const ros::NodeHandle &nh) {
         std::string mission_addr;
-        nh.param<std::string>("mission", mission_addr, "demo");
+        nh.param<std::string>("mission", mission_addr, "/home/jsung9/catkin_ws/src/swarm_simulator/swarm_planner/missions/mission_8agents_15.json");
 
         std::ifstream ifs(mission_addr);
         IStreamWrapper isw(ifs);
