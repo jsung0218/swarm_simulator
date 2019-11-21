@@ -108,7 +108,7 @@
     <param name="world/margin"               value="$(arg world_margin)" />
   </node>
 
-  <node pkg="swarm_planner" type="swarm_traj_planner_rbp" name="swarm_traj_planner_rbp" output="screen" launch-prefix="xterm -e gdb --args">
+  <node pkg="swarm_planner" type="swarm_traj_planner_rbp" name="swarm_traj_planner_rbp" output="screen">
     <param name="log"                        value="$(arg log)" />
     
     <param name="mission"                    value="$(find swarm_planner)/missions/$(arg mission)" />

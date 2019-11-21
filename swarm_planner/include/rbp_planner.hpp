@@ -320,8 +320,6 @@ private:
         Eigen::MatrixXd A_0 = Eigen::MatrixXd::Zero(n+1, n+1);
         Eigen::MatrixXd A_T = Eigen::MatrixXd::Zero(n+1, n+1);
 
-        double aa[6]= {1,2,3,4,5,6};
-        
         // Build A_0, A_T
         if (phi == 3 && n == 5) {
             A_0 <<   1,  0,  0,  0,  0,  0,
