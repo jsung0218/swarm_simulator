@@ -8,7 +8,7 @@
   <!-- <arg name="mission"               default="mission_8agents_15.json"/> -->
   <arg name="mission"               default="mission_1agents_MPF.json"/>
   <arg name="mission_follwer"       default="mission_1agents_MPF2.json"/>
-  <arg name="replay"                default="false"/>
+  <arg name="replay"                default="true"/>
   <arg name="replay_map"            default="map17.bt"/>
   <arg name="master_name"            default="master"/>
   <arg name="slave_name"            default="slave"/>
@@ -23,7 +23,7 @@
   <arg name="world_resolution"      default="0.1"/>
 
   <!-- Obstacles -->
-  <arg name="world_obs_num"         default="20"/>
+  <arg name="world_obs_num"         default="2"/>
   <arg name="world_r_min"           default="0.3"/>
   <arg name="world_r_max"           default="0.3"/>
   <arg name="world_h_min"           default="1.0"/>
@@ -128,7 +128,7 @@
     <param name="plan/iteration"             value="$(arg plan_iteration)" />
   </node>
 
-  <node pkg="swarm_planner" type="swarm_traj_planner_rbp" name="MPFollower" output="screen" launch-prefix="xterm -e gdb --args">
+  <node pkg="swarm_planner" type="MPFollower" name="MPFollower" output="screen" launch-prefix="xterm -e gdb --args">
     <param name="log"                        value="$(arg log)" />
     
     <param name="mission"                    value="$(find swarm_planner)/missions/$(arg mission_follwer)" />

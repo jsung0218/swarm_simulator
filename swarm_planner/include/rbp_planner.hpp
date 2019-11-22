@@ -179,20 +179,20 @@ private:
                             Eigen::MatrixXd c = Eigen::MatrixXd::Zero(1, n + 1);
                             Eigen::MatrixXd tm;
                             timeMatrix(1.0 / (T[m + 1] - T[m]), tm);
-                            tm = basis * tm;
+                            tm = basis * tm;  // tau_m in paper
 
                             if (qi >= gi * param.batch_size && qi < (gi + 1) * param.batch_size) {
                                 for (int i = 0; i < n + 1; i++) {
                                     c = c +
                                         vals[k * offset_dim + (qi - gi * param.batch_size) * offset_quad + m * offset_seg + i] *
-                                        tm.row(i);
+                                        tm.row(i);  // eq'n (2) in paper
                                     if (param.sequential) {
                                         dummy(qi * offset_quad + m * (n + 1) + i, k) =
                                                 vals[k * offset_dim + (qi - gi * param.batch_size) * offset_quad +
                                                      m * offset_seg + i];
                                     }
                                 }
-                                coef[qi].block(m * offset_seg, k, n + 1, 1) = c.transpose();
+                                coef[qi].block(m * offset_seg, k, n + 1, 1) = c.transpose();  // coef[qi] : (offset_quad,3)
                             } else if (param.sequential && param.N_b < N / param.batch_size) {
                                 for (int i = 0; i < n + 1; i++) {
                                     c = c + dummy(qi * offset_quad + m * offset_seg + i, k) * tm.row(i);

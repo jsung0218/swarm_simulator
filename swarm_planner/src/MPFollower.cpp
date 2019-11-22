@@ -21,6 +21,7 @@
 bool has_octomap = false;
 bool has_path = false;
 std::shared_ptr<octomap::OcTree> octree_obj;
+std::vector<double> target_following; 
 
 void octomapCallback(const octomap_msgs::Octomap& octomap_msg)
 {
@@ -32,11 +33,25 @@ void octomapCallback(const octomap_msgs::Octomap& octomap_msg)
     has_octomap = true;
 }
 
+void poseTargetCallback(const geometry_msgs::PoseStamped& pos_msg)
+{
+    if(has_path)
+        return;
+
+    target_following.clear();
+    target_following.push_back(pos_msg.pose.position.x);
+    target_following.push_back(pos_msg.pose.position.y);
+    target_following.push_back(pos_msg.pose.position.z);
+}
+
 int main(int argc, char* argv[]) {
     ROS_INFO("Follower Trajectory Planner");
     ros::init (argc, argv, "MPFollower_node");
     ros::NodeHandle nh( "~" );
     ros::Subscriber octomap_sub = nh.subscribe( "/octomap_full", 1, octomapCallback );
+
+    // subscriber to reciever poseStamped which is assigned to Start and Goal.
+    ros::Subscriber pose_target_sub = nh.subscribe( "/pose_quad/mavmaster", 1, poseTargetCallback );
 
     // Mission
     SwarmPlanning::Mission mission;
@@ -107,7 +122,9 @@ int main(int argc, char* argv[]) {
             {
                 RBPPlanner_obj.reset(new RBPPlanner(corridor_obj, initTrajPlanner_obj, mission, param));
                 if (!RBPPlanner_obj.get()->update(param.log)) {
-                    return -1;
+                    // return -1;
+                    mission.goalState[0] = target_following;
+                    continue;
                 }
             }
             timer_step.stop();
@@ -128,6 +145,21 @@ int main(int argc, char* argv[]) {
             current_time = ros::Time::now().toSec() - start_time;
             resultPublisher_obj.get()->update(current_time);
             resultPublisher_obj.get()->publish();
+
+            if( current_time > 1 ){
+                has_path = false;
+                    // Mission
+                std::vector<double> temp_state;                    
+                temp_state.resize(3);
+                
+                if( target_following.size() != 3)
+                    continue;
+                ROS_INFO("New Target pos : (%1.2f,%1.2f,%1.2f)", target_following[0], target_following[1], target_following[2]);
+                temp_state = mission.startState[0];
+                mission.startState[0] = mission.goalState[0];
+                mission.goalState[0] = target_following;
+            }
+
         }
         ros::spinOnce();
         rate.sleep();

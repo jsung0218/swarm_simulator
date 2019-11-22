@@ -91,6 +91,8 @@ public:
         feasibleBox_pub = nh.advertise<visualization_msgs::MarkerArray>("/feasible_box"+ mav_name, 1);
         colBox_pub = nh.advertise<visualization_msgs::MarkerArray>("/collision_model"+ mav_name, 1);
 
+        posdQuad_pub = nh.advertise<geometry_msgs::PoseStamped>("/pose_quad"+mav_name, 1);
+
         msgs_traj.resize(qn);
         msgs_relBox.resize(qn);
     }
@@ -113,6 +115,7 @@ public:
             traj_pubs[qi].publish(msgs_traj[qi]);
             relBox_pubs[qi].publish(msgs_relBox[qi]);
         }
+        posdQuad_pub.publish(msgs_pose_quad);
         traj_info_pub.publish(RBPPlanner_obj.get()->msgs_traj_info);
         initTraj_pub.publish(msgs_initTraj);
         obsBox_pub.publish(msgs_obsBox);
@@ -158,6 +161,7 @@ private:
     std::vector<ros::Publisher> relBox_pubs;
     ros::Publisher feasibleBox_pub;
     ros::Publisher colBox_pub;
+    ros::Publisher posdQuad_pub;
 
     // ROS messages
     std::vector<nav_msgs::Path> msgs_traj;
@@ -166,6 +170,7 @@ private:
     std::vector<visualization_msgs::MarkerArray> msgs_relBox;
     visualization_msgs::MarkerArray msgs_feasibleBox;
     visualization_msgs::MarkerArray msgs_colBox;
+    geometry_msgs::PoseStamped msgs_pose_quad;
 
     void timeMatrix(double current_time, int& index, Eigen::MatrixXd& polyder){
         double tseg = 0;
@@ -202,7 +207,11 @@ private:
             Eigen::MatrixXd polyder;
             timeMatrix(current_time, index, polyder);
 
-            pva[qi] = polyder * coef[qi].block((param.n + 1) * index, 0, (param.n + 1), 3);
+            // polyder : (3,6) : ( pos,vel,acc)x( n+1 )
+            // pva[qi] : (3,3) = (3,6)x(6,3)
+            // coef[qi] : (6,3) = ( n+1, xyz)
+            // coef[qi].block : (6,3) = ( n+1, xyz)
+            pva[qi] = polyder * coef[qi].block((param.n + 1) * index, 0, (param.n + 1), 3);  // size : 6x3 ,(n=5)
 
             msgs_traj[qi].header.frame_id = "/world";
             msgs_traj[qi].header.stamp.sec = current_time;
@@ -213,6 +222,12 @@ private:
             pos_des.pose.position.y = pva[qi](0,1);
             pos_des.pose.position.z = pva[qi](0,2);
             msgs_traj[qi].poses.emplace_back(pos_des);
+
+            // msgs_pose_quad.position.x = pva[qi](0,0);
+            // msgs_pose_quad.position.y = pva[qi](0,1);
+            // msgs_pose_quad.position.z = pva[qi](0,2);
+            // msgs_pose_quad.header.frame_id = "/world";
+            msgs_pose_quad = pos_des;
 
             currentState[qi][0] = pva[qi](0,0);
             currentState[qi][1] = pva[qi](0,1);
@@ -661,9 +676,11 @@ private:
                 int index = 0;
                 Eigen::MatrixXd state, polyder;
                 timeMatrix(t[j], index, polyder);
+                // (3,6)x(6,3) = (pva, n+1)x(n+1,xyz) = (pva, xyz)
                 state = polyder * coef[qi].block((param.n + 1) * index, 0, (param.n + 1), 3);
 
                 for (int i = 0; i < outdim * param.phi; i++) {
+                    // quad_state[qi] : (3x3) : (pva) x (xyz)
                     quad_state[qi][i][j] = state(i / outdim, i % outdim);
                 }
             }

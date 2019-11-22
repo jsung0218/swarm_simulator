@@ -32,12 +32,15 @@ void octomapCallback(const octomap_msgs::Octomap& octomap_msg)
     has_octomap = true;
 }
 
+
+            
 int main(int argc, char* argv[]) {
     ROS_INFO("Swarm Trajectory Planner");
     ros::init (argc, argv, "swarm_traj_planner_rbp");
     ros::NodeHandle nh( "~" );
     ros::Subscriber octomap_sub = nh.subscribe( "/octomap_full", 1, octomapCallback );
 
+    
     // Mission
     SwarmPlanning::Mission mission;
     if(!mission.setMission(nh)){
@@ -128,6 +131,17 @@ int main(int argc, char* argv[]) {
             current_time = ros::Time::now().toSec() - start_time;
             resultPublisher_obj.get()->update(current_time);
             resultPublisher_obj.get()->publish();
+            static int iTest = 0;
+            if( current_time > 10 && iTest < 5){
+                has_path = false;
+                    // Mission
+                std::vector<double> temp_state;                    
+                temp_state.resize(3);
+                
+                temp_state = mission.startState[0];
+                mission.startState[0] = mission.goalState[0];
+                mission.goalState[0] = temp_state;
+            }
         }
         ros::spinOnce();
         rate.sleep();
