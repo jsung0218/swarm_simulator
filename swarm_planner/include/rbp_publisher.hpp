@@ -9,6 +9,7 @@
 #include <trajectory_msgs/MultiDOFJointTrajectory.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <nav_msgs/Path.h>
+#include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/Marker.h>
@@ -92,6 +93,7 @@ public:
         colBox_pub = nh.advertise<visualization_msgs::MarkerArray>("/collision_model"+ mav_name, 1);
 
         posdQuad_pub = nh.advertise<geometry_msgs::PoseStamped>("/pose_quad"+mav_name, 1);
+        odom_pub = nh.advertise<nav_msgs::Odometry>("/odom_quad"+mav_name, 50);
 
         msgs_traj.resize(qn);
         msgs_relBox.resize(qn);
@@ -116,6 +118,9 @@ public:
             relBox_pubs[qi].publish(msgs_relBox[qi]);
         }
         posdQuad_pub.publish(msgs_pose_quad);
+        odom_pub.publish(odom);
+
+
         traj_info_pub.publish(RBPPlanner_obj.get()->msgs_traj_info);
         initTraj_pub.publish(msgs_initTraj);
         obsBox_pub.publish(msgs_obsBox);
@@ -162,6 +167,7 @@ private:
     ros::Publisher feasibleBox_pub;
     ros::Publisher colBox_pub;
     ros::Publisher posdQuad_pub;
+    ros::Publisher odom_pub;
 
     // ROS messages
     std::vector<nav_msgs::Path> msgs_traj;
@@ -171,6 +177,10 @@ private:
     visualization_msgs::MarkerArray msgs_feasibleBox;
     visualization_msgs::MarkerArray msgs_colBox;
     geometry_msgs::PoseStamped msgs_pose_quad;
+    geometry_msgs::Twist msgs_vel_quad;
+    geometry_msgs::Vector3 msgs_acc_quad;
+
+    nav_msgs::Odometry odom;
 
     void timeMatrix(double current_time, int& index, Eigen::MatrixXd& polyder){
         double tseg = 0;
@@ -217,10 +227,26 @@ private:
             msgs_traj[qi].header.stamp.sec = current_time;
 
             geometry_msgs::PoseStamped pos_des;
+    
+
             pos_des.header.frame_id = "/world";
             pos_des.pose.position.x = pva[qi](0,0);
             pos_des.pose.position.y = pva[qi](0,1);
             pos_des.pose.position.z = pva[qi](0,2);
+            
+            odom.header.stamp.sec = current_time;
+            odom.header.frame_id = "/world";
+
+            //set the position
+            odom.pose.pose.position.x = pva[qi](0,0);
+            odom.pose.pose.position.y = pva[qi](0,1);
+            odom.pose.pose.position.z = pva[qi](0,2);
+  
+            odom.twist.twist.linear.x = pva[qi](1,0);
+            odom.twist.twist.linear.y = pva[qi](1,1);
+            odom.twist.twist.linear.z = pva[qi](1,2);
+  
+
             msgs_traj[qi].poses.emplace_back(pos_des);
 
             // msgs_pose_quad.position.x = pva[qi](0,0);
@@ -228,6 +254,7 @@ private:
             // msgs_pose_quad.position.z = pva[qi](0,2);
             // msgs_pose_quad.header.frame_id = "/world";
             msgs_pose_quad = pos_des;
+
 
             currentState[qi][0] = pva[qi](0,0);
             currentState[qi][1] = pva[qi](0,1);

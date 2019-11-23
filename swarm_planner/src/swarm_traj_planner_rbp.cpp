@@ -11,6 +11,8 @@
 #include <param.hpp>
 #include <mission.hpp>
 #include <timer.hpp>
+#include <math.h>
+#include <random>
 
 // Submodules
 #include <ecbs_planner.hpp>
@@ -21,6 +23,12 @@
 bool has_octomap = false;
 bool has_path = false;
 std::shared_ptr<octomap::OcTree> octree_obj;
+random_device rd;
+default_random_engine eng(rd());
+uniform_real_distribution<double>  rand_x;
+uniform_real_distribution<double>  rand_y;
+uniform_real_distribution<double>  rand_z;
+double x_min, y_min, z_min, x_max, y_max, z_max;
 
 void octomapCallback(const octomap_msgs::Octomap& octomap_msg)
 {
@@ -40,7 +48,25 @@ int main(int argc, char* argv[]) {
     ros::NodeHandle nh( "~" );
     ros::Subscriber octomap_sub = nh.subscribe( "/octomap_full", 1, octomapCallback );
 
-    
+    nh.param<double>("world/x_min", x_min, -5);
+    nh.param<double>("world/y_min", y_min, -5);
+    nh.param<double>("world/z_min", z_min, 0);
+    nh.param<double>("world/x_max", x_max, 5);
+    nh.param<double>("world/y_max", y_max, 5);
+    nh.param<double>("world/z_max", z_max, 2.5);
+
+    x_min = -3;
+    y_min = -3;
+    z_min = 1;
+    x_max = 3;
+    y_max = 3;
+    z_max = 4;
+
+
+    rand_x = uniform_real_distribution<double>(x_min, x_max);
+    rand_y = uniform_real_distribution<double>(y_min, y_max);
+    rand_z = uniform_real_distribution<double>(z_min, z_max);
+
     // Mission
     SwarmPlanning::Mission mission;
     if(!mission.setMission(nh)){
@@ -110,7 +136,9 @@ int main(int argc, char* argv[]) {
             {
                 RBPPlanner_obj.reset(new RBPPlanner(corridor_obj, initTrajPlanner_obj, mission, param));
                 if (!RBPPlanner_obj.get()->update(param.log)) {
-                    return -1;
+                    //return -1;
+                    has_path = true;
+                    break;
                 }
             }
             timer_step.stop();
@@ -135,12 +163,39 @@ int main(int argc, char* argv[]) {
             if( current_time > 10 && iTest < 5){
                 has_path = false;
                     // Mission
-                std::vector<double> temp_state;                    
-                temp_state.resize(3);
-                
-                temp_state = mission.startState[0];
-                mission.startState[0] = mission.goalState[0];
+
+                // mission.startState[0] = mission.goalState[0];                    
+                std::vector<double> temp_state(9,0);                    
+                double x, y, z;
+                double dist = 0.0;
+                double distObs = 0.0;
+                octomap::point3d p;
+
+                // while( dist < 5 || distObs <= 1)
+                while( dist < 5)
+                {
+                    x    = rand_x(eng);
+                    y    = rand_y(eng);
+                    z    = rand_z(eng);
+                    distObs = distmap_obj.get()->getDistance( octomap::point3d(x,y,z) );
+                                        
+                    dist = sqrt ( pow( mission.startState[0].at(0)-x, 2)+
+                                  pow( mission.startState[0].at(1)-y, 2)+
+                                  pow( mission.startState[0].at(2)-z, 2) );
+                    if (distObs == DynamicEDTOctomap::distanceValue_Error)
+                        dist = 0;
+                }
+                ROS_WARN( "Target goal : (%1.2f,%1.2f,%1.2f)", x, y, z);
+                ROS_WARN( "distance from start and obs : (%1.2f,%1.2f)", dist, distObs);
+
+                temp_state.clear();
+                temp_state.push_back(x);
+                temp_state.push_back(y);
+                temp_state.push_back(z);
+
                 mission.goalState[0] = temp_state;
+
+
             }
         }
         ros::spinOnce();

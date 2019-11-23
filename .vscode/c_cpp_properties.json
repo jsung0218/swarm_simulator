@@ -7,7 +7,9 @@
             },
             "includePath": [
                 "/opt/ros/kinetic/include/**",
-                "/usr/include/**"
+                "/home/jsung9/catkin_ws/src/swarm_simulator/swarm_planner/include/**",
+                "/usr/include/**",
+                "/opt/ibm/ILOG/CPLEX_Studio129/cplex/include/**"
             ],
             "name": "ROS",
             "intelliSenseMode": "gcc-x64",

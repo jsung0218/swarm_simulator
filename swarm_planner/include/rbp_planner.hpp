@@ -588,6 +588,9 @@ private:
             }
         }
         count_eq = c.getSize();
+        
+        
+        ROS_WARN( " Eq count : %1.2f", count_eq);
 //        for(int qi = 0; qi < N; qi++){
 //            if(qi >= gi * plan_batch_size && qi < (gi+1) * plan_batch_size){
 //                continue;
@@ -607,6 +610,8 @@ private:
                 }
                 for (int j = 0; j < (n + 1) * M; j++) {
                     int idx = k * offset_dim + (qi - gi * param.batch_size) * offset_quad + j;
+                    if ( idx < count_eq )
+                        continue;
                     c.add(x[idx] <= dlq(2 * qi * offset_quad + j, k));
                     c.add(-x[idx] <= dlq((2 * qi + 1) * offset_quad + j, k));
                 }
@@ -625,7 +630,7 @@ private:
                         && (qj < gi * param.batch_size || qj >= (gi+1) * param.batch_size)){
                     for (int j = 0; j < M * (n + 1); j++) {
                         int idx = (qi - gi * param.batch_size) * offset_quad + j;
-
+                        // plane eq'n : n dot x >= d, (a,b,c) dot (x,y,z) >= d
                         c.add(dlq(offset_box + offset_quad * 2 * iter + j, 0) * (dummy(qj * offset_quad + j, 0) - x[0 * offset_dim + idx]) +
                               dlq(offset_box + offset_quad * 2 * iter + j, 1) * (dummy(qj * offset_quad + j, 1) - x[1 * offset_dim + idx]) +
                               dlq(offset_box + offset_quad * 2 * iter + j, 2) * (dummy(qj * offset_quad + j, 2) - x[2 * offset_dim + idx])

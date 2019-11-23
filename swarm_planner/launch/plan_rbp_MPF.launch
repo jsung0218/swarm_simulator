@@ -8,7 +8,7 @@
   <!-- <arg name="mission"               default="mission_8agents_15.json"/> -->
   <arg name="mission"               default="mission_1agents_MPF.json"/>
   <arg name="mission_follwer"       default="mission_1agents_MPF2.json"/>
-  <arg name="replay"                default="true"/>
+  <arg name="replay"                default="false"/>
   <arg name="replay_map"            default="map17.bt"/>
   <arg name="master_name"            default="master"/>
   <arg name="slave_name"            default="slave"/>
