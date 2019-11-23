@@ -30,6 +30,8 @@ uniform_real_distribution<double>  rand_y;
 uniform_real_distribution<double>  rand_z;
 double x_min, y_min, z_min, x_max, y_max, z_max;
 
+std::vector<double> odom_target(9,0); 
+
 void octomapCallback(const octomap_msgs::Octomap& octomap_msg)
 {
     if(has_octomap)
@@ -40,6 +42,23 @@ void octomapCallback(const octomap_msgs::Octomap& octomap_msg)
     has_octomap = true;
 }
 
+void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
+{
+    // if(has_path)
+    //     return;
+
+    odom_target.clear();
+    odom_target.push_back(odom_msg.pose.pose.position.x);
+    odom_target.push_back(odom_msg.pose.pose.position.y);
+    odom_target.push_back(odom_msg.pose.pose.position.z);
+    odom_target.push_back(odom_msg.twist.twist.linear.x);
+    odom_target.push_back(odom_msg.twist.twist.linear.y);
+    odom_target.push_back(odom_msg.twist.twist.linear.z);
+    odom_target.push_back(0);
+    odom_target.push_back(0);
+    odom_target.push_back(0);
+    
+}
 
             
 int main(int argc, char* argv[]) {
@@ -47,7 +66,8 @@ int main(int argc, char* argv[]) {
     ros::init (argc, argv, "swarm_traj_planner_rbp");
     ros::NodeHandle nh( "~" );
     ros::Subscriber octomap_sub = nh.subscribe( "/octomap_full", 1, octomapCallback );
-
+    ros::Subscriber odom_target_sub = nh.subscribe( "/odom_quad/mavmaster", 1, odomTargetCallback );
+  
     nh.param<double>("world/x_min", x_min, -5);
     nh.param<double>("world/y_min", y_min, -5);
     nh.param<double>("world/z_min", z_min, 0);
@@ -55,12 +75,12 @@ int main(int argc, char* argv[]) {
     nh.param<double>("world/y_max", y_max, 5);
     nh.param<double>("world/z_max", z_max, 2.5);
 
-    x_min = -3;
-    y_min = -3;
-    z_min = 1;
-    x_max = 3;
-    y_max = 3;
-    z_max = 4;
+    // x_min = -4;
+    // y_min = 3;
+    z_min = 2;
+    // x_max = -5;
+    // y_max = 3;
+    z_max = 2;
 
 
     rand_x = uniform_real_distribution<double>(x_min, x_max);
@@ -160,29 +180,59 @@ int main(int argc, char* argv[]) {
             resultPublisher_obj.get()->update(current_time);
             resultPublisher_obj.get()->publish();
             static int iTest = 0;
-            if( current_time > 10 && iTest < 5){
+            double x, y, z;
+            double dist = 0.0;
+            double distObs = 0.0;
+
+            dist = sqrt ( pow(odom_target.at(0)-mission.goalState[0].at(0), 2)+
+                          pow(odom_target.at(1)-mission.goalState[0].at(1), 2)+
+                          pow(odom_target.at(2)-mission.goalState[0].at(2), 2) );
+                          
+            if (dist < 0.5) {
+            //if( current_time > 10){
+
                 has_path = false;
+
+                mission.startState[0] = mission.goalState[0];   
+#if 0                
+                if( iTest %4 == 0 )
+                {
+                    mission.goalState[0] = std::vector<double> {-4, -3, 2, 0, 0, 0, 0, 0, 0 };
+                }
+                else if( iTest %4 == 1 )
+                {
+                    mission.goalState[0] = std::vector<double> {-3, 3, 2, 0, 0, 0, 0, 0, 0 };
+                }
+                else if( iTest %4 == 2 )
+                {
+                    mission.goalState[0] = std::vector<double> {3, 4, 2, 0, 0, 0, 0, 0, 0 };
+                }else
+                {
+                    mission.goalState[0] = std::vector<double> {2, -3, 2, 0, 0, 0, 0, 0, 0 };
+                }
+                iTest++;
+#endif
                     // Mission
 
+#if 1
                 // mission.startState[0] = mission.goalState[0];                    
                 std::vector<double> temp_state(9,0);                    
-                double x, y, z;
-                double dist = 0.0;
-                double distObs = 0.0;
+                
                 octomap::point3d p;
 
                 // while( dist < 5 || distObs <= 1)
-                while( dist < 5)
+                while( dist < 5 )
                 {
                     x    = rand_x(eng);
                     y    = rand_y(eng);
                     z    = rand_z(eng);
                     distObs = distmap_obj.get()->getDistance( octomap::point3d(x,y,z) );
-                                        
+                    assert(distObs>=0);
                     dist = sqrt ( pow( mission.startState[0].at(0)-x, 2)+
                                   pow( mission.startState[0].at(1)-y, 2)+
                                   pow( mission.startState[0].at(2)-z, 2) );
-                    if (distObs == DynamicEDTOctomap::distanceValue_Error)
+
+                    if (distObs == DynamicEDTOctomap::distanceValue_Error || distObs < 0.7 - SP_EPSILON_FLOAT )
                         dist = 0;
                 }
                 ROS_WARN( "Target goal : (%1.2f,%1.2f,%1.2f)", x, y, z);
@@ -192,9 +242,16 @@ int main(int argc, char* argv[]) {
                 temp_state.push_back(x);
                 temp_state.push_back(y);
                 temp_state.push_back(z);
+                temp_state.push_back(0);
+                temp_state.push_back(0);
+                temp_state.push_back(0);
+                temp_state.push_back(0);
+                temp_state.push_back(0);
+                temp_state.push_back(0);
+
 
                 mission.goalState[0] = temp_state;
-
+#endif
 
             }
         }

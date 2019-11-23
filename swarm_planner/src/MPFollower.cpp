@@ -36,8 +36,8 @@ void octomapCallback(const octomap_msgs::Octomap& octomap_msg)
 
 void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
 {
-    if(has_path)
-        return;
+    // if(has_path)
+    //     return;
 
     odom_target.clear();
     odom_target.push_back(odom_msg.pose.pose.position.x);
@@ -46,6 +46,9 @@ void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
     odom_target.push_back(odom_msg.twist.twist.linear.x);
     odom_target.push_back(odom_msg.twist.twist.linear.y);
     odom_target.push_back(odom_msg.twist.twist.linear.z);
+    odom_target.push_back(0);
+    odom_target.push_back(0);
+    odom_target.push_back(0);
     
 }
 
@@ -60,6 +63,10 @@ void odomFollowerCallback(const nav_msgs::Odometry& odom_msg)
     odom_follwer.push_back(odom_msg.twist.twist.linear.x);
     odom_follwer.push_back(odom_msg.twist.twist.linear.y);
     odom_follwer.push_back(odom_msg.twist.twist.linear.z);
+    odom_follwer.push_back(0);
+    odom_follwer.push_back(0);
+    odom_follwer.push_back(0);
+
 }
 
 
@@ -167,11 +174,11 @@ int main(int argc, char* argv[]) {
             resultPublisher_obj.get()->update(current_time);
             resultPublisher_obj.get()->publish();
 
-            if( current_time > 2 ){
+            if( current_time >= 4 ){
                 has_path = false;
                     // Mission
                
-                if( odom_target.size() != 6 || odom_follwer.size() != 6)
+                if( odom_target.size() != 9 || odom_follwer.size() != 9)
                     continue;
                 ROS_WARN("Follwer odom : (%1.2f,%1.2f,%1.2f, %1.2f,%1.2f,%1.2f)", 
                                     odom_follwer[0], odom_follwer[1], odom_follwer[2],

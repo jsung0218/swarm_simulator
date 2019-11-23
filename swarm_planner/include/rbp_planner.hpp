@@ -156,7 +156,7 @@ private:
                 cplex.extract(model);
 
                 if (log) {
-                    std::string QPmodel_path = param.package_path + "/log/QPmodel.lp";
+                    std::string QPmodel_path = param.package_path + "/log/QPmodel_" + param.mav_name +".lp";
                     cplex.exportModel(QPmodel_path.c_str());
                 } else {
                     cplex.setOut(env.getNullStream());
@@ -425,7 +425,20 @@ private:
                 while(bi < SFC[qi].size() && SFC[qi][bi].second < T[m+1]){
                     bi++;
                 }
+                if (bi > 5 )
+                    bi = 5;
 
+                if ( SFC[qi][bi].first[3] > 100 ||
+                     SFC[qi][bi].first[0] < -100 ||
+                     SFC[qi][bi].first[4] > 100 ||
+                     SFC[qi][bi].first[1] < -100 ||
+                     SFC[qi][bi].first[5] > 100 ||
+                     SFC[qi][bi].first[2] < -100 )
+                     {
+                         ROS_WARN(" ############# SFC  is out of bound");
+                     }
+                 
+                   
                 d_upper.block((n+1)*m, 0, n+1, 1) =
                         Eigen::MatrixXd::Constant(n+1, 1, SFC[qi][bi].first[3]);
                 d_lower.block((n+1)*m, 0, n+1, 1) =
@@ -447,6 +460,7 @@ private:
                     d_lower;
         }
 
+#if 0
         // Build dlq_rel
         int iter = 0;
         for(int qi = 0; qi < N; qi++){
@@ -475,13 +489,13 @@ private:
                 iter++;
             }
         }
-
+#endif
         // Build dlq
 //        dlq_obj->block(0, 0, dlq_box.rows(), dlq_box.cols()) = dlq_box;
 //        dlq_obj->block(dlq_box.rows(), 0, dlq_rel.rows(), dlq_rel.cols()) = dlq_rel;
-        dlq << dlq_box,
-               dlq_rel;
-
+        // dlq << dlq_box,
+        //        dlq_rel;
+        dlq << dlq_box;
     }
 
     void build_dummy(){
@@ -572,6 +586,7 @@ private:
         }
         model.add(IloMinimize(env, cost));
 
+        int count_eq_int = 0;
         // Equality Constraints
         for (int k = 0; k < outdim; k++) {
             for (int qi = 0; qi < param.batch_size; qi++) {
@@ -583,6 +598,7 @@ private:
                         }
                     }
                     c.add(expr == deq((gi * param.batch_size + qi) * (2 * phi + (M - 1) * phi) + i, k));
+                    count_eq_int ++;
                     expr.end();
                 }
             }
@@ -591,6 +607,7 @@ private:
         
         
         ROS_WARN( " Eq count : %1.2f", count_eq);
+        ROS_WARN( " Eq count : %d", count_eq_int);
 //        for(int qi = 0; qi < N; qi++){
 //            if(qi >= gi * plan_batch_size && qi < (gi+1) * plan_batch_size){
 //                continue;
@@ -610,8 +627,18 @@ private:
                 }
                 for (int j = 0; j < (n + 1) * M; j++) {
                     int idx = k * offset_dim + (qi - gi * param.batch_size) * offset_quad + j;
-                    if ( idx < count_eq )
+                    // if ( idx < count_eq )
+                    // if ( idx < count_eq_int )
+                    // {
+                    //     ROS_WARN( " Invalid Ineq count : %d", idx);
+                    //     continue;
+                    // }
+                    int value = dlq(2 * qi * offset_quad + j, k);
+                    if(  value > 1e5 )
+                    {
+                        ROS_WARN( " Invalid Ineq value : %d", value);
                         continue;
+                    }
                     c.add(x[idx] <= dlq(2 * qi * offset_quad + j, k));
                     c.add(-x[idx] <= dlq((2 * qi + 1) * offset_quad + j, k));
                 }

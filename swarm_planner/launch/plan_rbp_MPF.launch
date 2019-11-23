@@ -9,7 +9,7 @@
   <arg name="mission"               default="mission_1agents_MPF.json"/>
   <arg name="mission_follwer"       default="mission_1agents_MPF2.json"/>
   <arg name="replay"                default="false"/>
-  <arg name="replay_map"            default="map17.bt"/>
+  <arg name="replay_map"            default="replay_2obs_1.bt"/>
   <arg name="master_name"            default="master"/>
   <arg name="slave_name"            default="slave"/>
   
@@ -23,11 +23,11 @@
   <arg name="world_resolution"      default="0.1"/>
 
   <!-- Obstacles -->
-  <arg name="world_obs_num"         default="2"/>
-  <arg name="world_r_min"           default="0.3"/>
-  <arg name="world_r_max"           default="0.3"/>
-  <arg name="world_h_min"           default="1.0"/>
-  <arg name="world_h_max"           default="2.5"/>
+  <arg name="world_obs_num"         default="15"/>
+  <arg name="world_r_min"           default="0.6"/>
+  <arg name="world_r_max"           default="0.6"/>
+  <arg name="world_h_min"           default="2.0"/>
+  <arg name="world_h_max"           default="4.0"/>
   <arg name="world_margin"          default="0.5"/>
   
   <!-- InitTrajPlanner Parameters -->
@@ -42,6 +42,7 @@
 
   <!-- RBPPlanner Parameters -->
   <arg name="plan_time_step"        default="0.1"/>
+  <arg name="plan_time_step_slave"        default="0.01"/>
   <arg name="plan_downwash"         default="2.0"/>
   <arg name="plan_n"                default="5"/>
   <arg name="plan_phi"              default="3"/>  
@@ -148,7 +149,7 @@
     <param name="box/xy_res"                 value="$(arg box_xy_res)" />
     <param name="box/z_res"                  value="$(arg box_z_res)" />
 
-    <param name="plan/time_step"             value="$(arg plan_time_step)" />
+    <param name="plan/time_step"             value="$(arg plan_time_step_slave)" />
     <param name="plan/downwash"              value="$(arg plan_downwash)" />
     <param name="plan/n"                     value="$(arg plan_n)" />
     <param name="plan/phi"                   value="$(arg plan_phi)" />
