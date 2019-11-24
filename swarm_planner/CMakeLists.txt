@@ -5,10 +5,32 @@ project(swarm_planner)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -g3 -O3 -m64 -Ofast -flto -msse2 -msse3 -march=native  -mfpmath=sse")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set(CMAKE_CXX_STANDARD 14)
-
-include_directories(${PROJECT_SOURCE_DIR}/include)
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
+
+#CATKIN
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  roslib
+  std_msgs
+  nav_msgs
+  geometry_msgs
+  octomap_ros
+  octomap_msgs
+  sensor_msgs
+  quadrotor_msgs
+)
+
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
+include_directories(
+    SYSTEM 
+    include
+    ${catkin_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR}
+    ${PCL_INCLUDE_DIRS})
+
+
 
 #ECBS
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/ecbs)
@@ -46,16 +68,7 @@ set(CONCERT_LIBRARIES_DIR ${CPLEX_PREFIX_DIR}/concert/lib/x86-64_linux/static_pi
 include_directories(${CPLEX_INCLUDE_DIR} ${CONCERT_INCLUDE_DIR})
 link_directories(${CPLEX_LIBRARIES_DIR} ${CONCERT_LIBRARIES_DIR})
 
-#CATKIN
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  roslib
-  std_msgs
-  nav_msgs
-  geometry_msgs
-  octomap_ros
-  octomap_msgs
-)
+
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp roslib message_runtime
@@ -95,6 +108,41 @@ target_link_libraries(MPFollower
   ${SIPP_LINK_LIBS}
   ${PYTHON_LIBRARIES}
   m
+  ilocplex
+  cplex
+  concert
+  pthread
+  dl
+)
+
+target_link_libraries(MPFollower
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+
+add_executable(MPF_traj_server 
+    src/MPF_traj_server.cpp
+    src/bezier_base.cpp)
+
+
+target_link_libraries( MPF_traj_server
+   ${catkin_LIBRARIES}
+   ${PCL_LIBRARIES})
+
+add_executable ( odom_generator 
+    src/odom_generator.cpp )
+target_link_libraries( odom_generator
+    ${catkin_LIBRARIES} )
+
+add_executable (MPF_Follower
+    src/MPF_Follower.cpp 
+    src/bezier_base.cpp)    
+
+target_link_libraries(MPF_Follower
+  ${catkin_LIBRARIES}
+  ${OCTOMAP_INCLUDE_DIRS}
+  ${PCL_LIBRARIES}
   ilocplex
   cplex
   concert

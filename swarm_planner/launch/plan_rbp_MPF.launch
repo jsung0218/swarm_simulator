@@ -13,6 +13,14 @@
   <arg name="master_name"            default="master"/>
   <arg name="slave_name"            default="slave"/>
   
+  <arg name="init_x" default="-4.0"/>
+  <arg name="init_y" default="-4.0"/>
+  <arg name="init_z" default=" 2.0"/>
+
+  <arg name="end_x" default=" 4.0"/>
+  <arg name="end_y" default=" 4.0"/>
+  <arg name="end_z" default=" 3.0"/>
+
   <!-- Environment -->
   <arg name="world_x_min"           default="-5"/>
   <arg name="world_y_min"           default="-5"/>
@@ -128,8 +136,8 @@
     <param name="plan/N_b"                   value="$(arg plan_N_b)" />
     <param name="plan/iteration"             value="$(arg plan_iteration)" />
   </node>
-
-  <node pkg="swarm_planner" type="MPFollower" name="MPFollower" output="screen" launch-prefix="xterm -e gdb --args">
+<!-- 
+  <node pkg="swarm_planner" type="MPFollower" name="MPFollower" output="screen" launch-prefix="xterm -e gdb args">
     <param name="log"                        value="$(arg log)" />
     
     <param name="mission"                    value="$(find swarm_planner)/missions/$(arg mission_follwer)" />
@@ -158,8 +166,74 @@
     <param name="plan/batch_size"            value="$(arg plan_batch_size)" />
     <param name="plan/N_b"                   value="$(arg plan_N_b)" />
     <param name="plan/iteration"             value="$(arg plan_iteration)" />
+  </node> -->
+
+
+
+  <node pkg="swarm_planner" type="MPF_Follower" name="MPF_Follower" output="screen" launch-prefix="xterm -e gdb --args">
+    <remap from="~waypoints"       to="/waypoint_generator/waypoints"/>
+    <remap from="~odometry"        to="/odom/fake_odom"/>
+    <remap from="~PointCloud"      to="/map_server/local_map" />
+    <remap from="~position_cmd"    to="/position_cmd"  />
+   
+    <param name="log"                        value="$(arg log)" />
+    <param name="mission"                    value="$(find swarm_planner)/missions/$(arg mission_follwer)" />
+    <param name="mav_name"                   value="$(arg slave_name)" />
+    <param name="world/x_min"                value="$(arg world_x_min)" />
+    <param name="world/y_min"                value="$(arg world_y_min)" />
+    <param name="world/z_min"                value="$(arg world_z_min)" />
+    <param name="world/x_max"                value="$(arg world_x_max)" />
+    <param name="world/y_max"                value="$(arg world_y_max)" />
+    <param name="world/z_max"                value="$(arg world_z_max)" />
+
+    <param name="ecbs/w"                     value="$(arg ecbs_w)" />
+    <param name="grid/xy_res"                value="$(arg grid_xy_res)" />
+    <param name="grid/z_res"                 value="$(arg grid_z_res)" />
+    <param name="grid/margin"                value="$(arg grid_margin)" />
+
+    <param name="box/xy_res"                 value="$(arg box_xy_res)" />
+    <param name="box/z_res"                  value="$(arg box_z_res)" />
+
+    <param name="plan/time_step"             value="$(arg plan_time_step_slave)" />
+    <param name="plan/downwash"              value="$(arg plan_downwash)" />
+    <param name="plan/n"                     value="$(arg plan_n)" />
+    <param name="plan/phi"                   value="$(arg plan_phi)" />
+
+    <param name="plan/sequential"            value="$(arg plan_sequential)" />
+    <param name="plan/batch_size"            value="$(arg plan_batch_size)" />
+    <param name="plan/N_b"                   value="$(arg plan_N_b)" />
+    <param name="plan/iteration"             value="$(arg plan_iteration)" />
+
+    <param name="demoParam/target_x"     value="$(arg end_x)" />
+    <param name="demoParam/target_y"     value="$(arg end_y)" />
+    <param name="demoParam/target_z"     value="$(arg end_z)" />
+    <param name="demoParam/goal_input"   value="true"  />
+    <param name="demoParam/is_limit_vel" value="true"  />
+    <param name="demoParam/is_limit_acc" value="false" />
+    <param name="demoParam/is_print"     value="false" />
+
   </node>
 
+
+<node pkg = "swarm_planner" type = "MPF_traj_server" output = "screen" name = "trajectory_server" launch-prefix="xterm -e gdb --ex run --args">        
+        <remap  from = "~trajectory"        to = "/sim_planning_demo/trajectory"/>
+        <remap  from = "~odometry"          to = "/odom/fake_odom"/>
+        <remap  from = "~position_command"  to = "/position_cmd"/>
+
+        <param name="optimization/poly_order_min"           value="5"/> 
+        <param name="optimization/poly_order_max"           value="5"/> 
+</node>
+
+<node pkg="odom_visualization" name="odom_visualization" type="odom_visualization" output="screen">
+        <remap from="~cmd"  to="/position_cmd"/>
+        <param name="color/a" value="0.8"/>    
+        <param name="color/r" value="1.0"/>        
+        <param name="color/g" value="0.0"/>        
+        <param name="color/b" value="0.0"/>       
+        <param name="covariance_scale" value="100.0"/>   
+        <param name="robot_scale" value="1.0"/>       
+        <param name="frame_id"    value="map"/>      
+</node>
 
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find swarm_planner)/launch/rviz_config/config_MPF.rviz" if="$(arg runsim)"/>
 
