@@ -22,7 +22,7 @@ const int  _DIM_z = 2;
 using namespace std;
 
 int _poly_order_min, _poly_order_max;
-
+typedef enum ServerState{INIT, TRAJ, HOVER} e_ServerState;
 class TrajectoryServer
 {
 private:
@@ -43,10 +43,11 @@ private:
     int _n_segment = 0;
     int _traj_id = 0;
     uint32_t _traj_flag = 0;
-    Eigen::VectorXd _time;
+    Eigen::VectorXd _Time;
     Eigen::MatrixXd _coef[3];
+    MatrixXd _PolyCoeff;
     vector<int> _order;
-
+    
     double _vis_traj_width = 0.2;
     double mag_coeff;
     ros::Time _final_time = ros::TIME_MIN;
@@ -54,8 +55,9 @@ private:
     double _start_yaw = 0.0, _final_yaw = 0.0;
 
     // state of the server
-    //enum ServerState{INIT, TRAJ, HOVER} state = INIT;
-    enum ServerState{INIT, TRAJ, HOVER} state = INIT;;
+    e_ServerState state = INIT;
+    e_ServerState state_prev = INIT;;
+    
     nav_msgs::Odometry _odom;
     quadrotor_msgs::PositionCommand _cmd;
     geometry_msgs::PoseStamped _vis_cmd;
@@ -143,6 +145,7 @@ public:
         _odom = odom;
         _vis_cmd.header = _odom.header;
         _vis_cmd.header.frame_id = "/map";
+        
 
         if(state == INIT && fabs(_odom.pose.pose.position.z  - 1.0) < 0.1 )
             cmd_flag = true;
@@ -152,10 +155,10 @@ public:
             //ROS_WARN("[TRAJ SERVER] Pub initial pos command");
             _cmd.position   = _odom.pose.pose.position;
             
-            if(!cmd_flag)
-                _cmd.position.z =  1.5;
-            else
-                _cmd.position.z =  1.5;
+            // if(!cmd_flag)
+            //     _cmd.position.z =  1.5;
+            // else
+            //     _cmd.position.z =  1.5;
             
             _cmd.header.stamp = _odom.header.stamp;
             _cmd.header.frame_id = "/map";
@@ -188,6 +191,35 @@ public:
         }
     }
 
+
+
+ void timeMatrix(double current_time, int& index, Eigen::MatrixXd& polyder){
+    double tseg = 0;
+    double tcand;
+
+    // find segment start time tseg
+    for(int m = 0; m < _n_segment; m++){
+        tcand = _Time[m];
+        if(tcand < current_time){
+            tseg = tcand;
+            index = m;
+        } else {
+            break;
+        }
+    }
+    tseg = current_time-tseg;
+    int MaxOrder = 5;
+    polyder.resize(3, MaxOrder+1);
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < MaxOrder+1; j++){
+            if(i <= j)
+                polyder(i, MaxOrder-j) = ((i==0)*1+(i==1)*j+(i==2)*j*(j-1)) * pow(tseg,j-i);
+            else
+                polyder(i, MaxOrder-j) = 0;
+        }
+    }
+}
+
     void rcvTrajectoryCallabck(const quadrotor_msgs::PolynomialTrajectory & traj)
     {
         //ROS_WARN("[SERVER] Recevied The Trajectory with %.3lf.", _start_time.toSec());
@@ -204,15 +236,18 @@ public:
             _traj_id = traj.trajectory_id;
             _n_segment = traj.num_segment;
             _final_time = _start_time = traj.header.stamp;
-            _time.resize(_n_segment);
+            _Time.resize(_n_segment);
 
             _order.clear();
-            for (int idx = 0; idx < _n_segment; ++idx)
+            int idx;
+            for (idx = 0; idx < _n_segment; ++idx)
             {
                 _final_time += ros::Duration(traj.time[idx]);
-                _time(idx) = traj.time[idx];
+                _Time(idx) = traj.time[idx];
                 _order.push_back(traj.order[idx]);
             }
+            _Time(idx) = traj.time[idx];
+            
 
             _start_yaw = traj.start_yaw;
             _final_yaw = traj.final_yaw;
@@ -220,24 +255,25 @@ public:
 
             int max_order = *max_element( begin( _order ), end( _order ) ); 
             
+            _PolyCoeff = MatrixXd::Zero( (max_order+1)*_n_segment, 3);
+
             _coef[_DIM_x] = MatrixXd::Zero(max_order + 1, _n_segment);
             _coef[_DIM_y] = MatrixXd::Zero(max_order + 1, _n_segment);
             _coef[_DIM_z] = MatrixXd::Zero(max_order + 1, _n_segment);
             
-            //ROS_WARN("stack the coefficients");
-            int shift = 0;
-            for (int idx = 0; idx < _n_segment; ++idx)
+            ROS_WARN("stack the coefficients");
+            idx = 0;
+            for (int i = 0; i < _n_segment; ++i)
             {     
-                int order = traj.order[idx];
-
-                for (int j = 0; j < (order + 1); ++j)
+                int order = traj.order[i];
+                int poly_num1d = order + 1;
+                for (int j = 0; j < poly_num1d; ++j)
                 {
-                    _coef[_DIM_x](j, idx) = traj.coef_x[shift + j];
-                    _coef[_DIM_y](j, idx) = traj.coef_y[shift + j];
-                    _coef[_DIM_z](j, idx) = traj.coef_z[shift + j];
+                    _PolyCoeff(j +i*poly_num1d,        0) = traj.coef_x[idx];
+                    _PolyCoeff(j +i*poly_num1d,        1) = traj.coef_y[idx];
+                    _PolyCoeff(j +i*poly_num1d,        2) = traj.coef_z[idx];
+                    idx++;
                 }
-
-                shift += (order + 1);
             }
         }
         else if (traj.action == quadrotor_msgs::PolynomialTrajectory::ACTION_ABORT) 
@@ -251,11 +287,22 @@ public:
             state = HOVER;
             _traj_flag = quadrotor_msgs::PositionCommand::TRAJECTORY_STATUS_IMPOSSIBLE;
         }
+        if (state_prev !=state)
+        {
+            ROS_WARN(" State is changed from %d to %d", state_prev, state);
+            for (int idx = 0; idx < _n_segment; ++idx)
+            {
+                ROS_WARN(" [%d] : %1.2f" , idx, _Time(idx) );
+            }
+        }
+        state_prev = state;
     }
 
     void pubPositionCommand()
     {
         // #1. check if it is right state
+        static int gCount = 0;
+        static double first_time = ros::Time::now().toSec();
         if (state == INIT) return;
         if (state == HOVER)
         {
@@ -292,70 +339,48 @@ public:
                 / ((_final_time - _start_time).toSec() + 1e-9);
 
             // #3. calculate the desired states
+             Eigen::MatrixXd pva;
+            int index = 0;
+            Eigen::MatrixXd polyder;
+            timeMatrix(t, index, polyder);
+            int maxOrder = 5;
+
+                // polyder : (3,6) : ( pos,vel,acc)x( n+1 )
+                // pva[qi] : (3,3) = (3,6)x(6,3)
+                // coef[qi] : (6xM,3) = ( (n+1)xM, xyz)
+                // coef[qi].block : (6,3) = ( n+1, xyz)
+            pva = polyder * _PolyCoeff.block((maxOrder + 1) * index, 0, (maxOrder+ 1), 3);  // size : 6x3 ,(n=5)
+
+            _cmd.position.x = pva(0,0);
+            _cmd.position.y = pva(0,1);
+            _cmd.position.z = pva(0,2);
+            _cmd.velocity.x = pva(1,0);
+            _cmd.velocity.y = pva(1,1);
+            _cmd.velocity.z = pva(1,2);
+            _cmd.acceleration.x =  pva(2,0);
+            _cmd.acceleration.y =  pva(2,1);
+            _cmd.acceleration.z =  pva(2,2);
+
             //ROS_WARN("[SERVER] the time : %.3lf\n, n = %d, m = %d", t, _n_order, _n_segment);
-            for (int idx = 0; idx < _n_segment; ++idx)
-            {
-                if (t > _time[idx] && idx + 1 < _n_segment)
-                {
-                    t -= _time[idx];
-                }
-                else
-                {   
-                    t /= _time[idx];
 
-                    _cmd.position.x = 0.0;
-                    _cmd.position.y = 0.0;
-                    _cmd.position.z = 0.0;
-                    _cmd.velocity.x = 0.0;
-                    _cmd.velocity.y = 0.0;
-                    _cmd.velocity.z = 0.0;
-                    _cmd.acceleration.x = 0.0;
-                    _cmd.acceleration.y = 0.0;
-                    _cmd.acceleration.z = 0.0;
-
-                    int cur_order = _order[idx];
-                    int cur_poly_num = cur_order + 1;
-
-                    for(int i = 0; i < cur_poly_num; i ++)
-                    {
-                        _cmd.position.x += _time[idx] * CList[cur_order](i) * _coef[_DIM_x].col(idx)(i) * pow(t, i) * pow((1 - t), (cur_order - i) ); 
-                        _cmd.position.y += _time[idx] * CList[cur_order](i) * _coef[_DIM_y].col(idx)(i) * pow(t, i) * pow((1 - t), (cur_order - i) ); 
-                        _cmd.position.z += _time[idx] * CList[cur_order](i) * _coef[_DIM_z].col(idx)(i) * pow(t, i) * pow((1 - t), (cur_order - i) ); 
-
-                        if(i < (cur_poly_num - 1))
-                        {
-                            _cmd.velocity.x += CvList[cur_order](i) * cur_order * (_coef[_DIM_x].col(idx)(i+1) - _coef[_DIM_x].col(idx)(i)) 
-                                            * pow(t, i) * pow((1 - t), (cur_order - 1 - i) );
-                            
-                            _cmd.velocity.y += CvList[cur_order](i) * cur_order * (_coef[_DIM_y].col(idx)(i+1) - _coef[_DIM_y].col(idx)(i)) 
-                                            * pow(t, i) * pow((1 - t), (cur_order - 1 - i) ); 
-                            
-                            _cmd.velocity.z += CvList[cur_order](i) * cur_order * (_coef[_DIM_z].col(idx)(i+1) - _coef[_DIM_z].col(idx)(i)) 
-                                            * pow(t, i) * pow((1 - t), (cur_order - 1 - i) ); 
-                        }
-
-                        if(i < (cur_poly_num - 2))
-                        {   
-                            _cmd.acceleration.x += 1.0 / _time[idx] * CaList[cur_order](i) * cur_order * (cur_order - 1) 
-                                                * (_coef[_DIM_x].col(idx)(i+2) - 2*_coef[_DIM_x].col(idx)(i+1) + _coef[_DIM_x].col(idx)(i)) 
-                                                * pow(t, i) * pow((1 - t), (cur_order - 2 - i) );
-                            
-                            _cmd.acceleration.y += 1.0 / _time[idx] * CaList[cur_order](i) * cur_order * (cur_order - 1) 
-                                                * (_coef[_DIM_y].col(idx)(i+2) - 2*_coef[_DIM_y].col(idx)(i+1) + _coef[_DIM_y].col(idx)(i)) 
-                                                * pow(t, i) * pow((1 - t), (cur_order - 2 - i) ); 
-                            
-                            _cmd.acceleration.z += 1.0 / _time[idx] * CaList[cur_order](i) * cur_order * (cur_order - 1) 
-                                                * (_coef[_DIM_z].col(idx)(i+2) - 2*_coef[_DIM_z].col(idx)(i+1) + _coef[_DIM_z].col(idx)(i)) 
-                                                * pow(t, i) * pow((1 - t), (cur_order - 2 - i) ); 
-                        }
-
-                    }
-
-                    break;
-                } 
-            }
         }
         // #4. just publish
+       
+        if (gCount++ % 1000 == 0)
+        {
+            double cur_time = ros::Time::now().toSec() - first_time;
+            ROS_WARN(" [My] (%1.2f s) Position cmd : (%1.2f,%1.2f,%1.2f)", cur_time, _cmd.position.x, _cmd.position.y, _cmd.position.z ) ;
+            for (int i = 0; i < _n_segment; ++i)
+            {
+                ROS_WARN(" [%d] : %1.2f coef : %1.2f,%1.2f,%1.2f,%1.2f,%1.2f,%1.2f" , i, _Time(i),
+                _PolyCoeff( 0+6*i, 0),
+                _PolyCoeff( 1+6*i, 0),
+                _PolyCoeff( 2+6*i, 0),
+                _PolyCoeff( 3+6*i, 0),
+                _PolyCoeff( 4+6*i, 0),
+                _PolyCoeff( 5+6*i, 0) );
+            }
+        }
         _cmd_pub.publish(_cmd);
 
         _vis_cmd.header = _cmd.header;

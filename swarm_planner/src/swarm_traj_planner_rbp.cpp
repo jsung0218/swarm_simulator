@@ -193,8 +193,9 @@ int main(int argc, char* argv[]) {
 
                 has_path = false;
 
-                mission.startState[0] = mission.goalState[0];   
-#if 0                
+                
+#if 0           
+                mission.startState[0] = mission.goalState[0];        
                 if( iTest %4 == 0 )
                 {
                     mission.goalState[0] = std::vector<double> {-4, -3, 2, 0, 0, 0, 0, 0, 0 };
@@ -215,7 +216,7 @@ int main(int argc, char* argv[]) {
                     // Mission
 
 #if 1
-                // mission.startState[0] = mission.goalState[0];                    
+                mission.startState[0] = mission.goalState[0];                    
                 std::vector<double> temp_state(9,0);                    
                 
                 octomap::point3d p;
