@@ -44,7 +44,6 @@ private:
     int _traj_id = 0;
     uint32_t _traj_flag = 0;
     Eigen::VectorXd _Time;
-    Eigen::MatrixXd _coef[3];
     MatrixXd _PolyCoeff;
     vector<int> _order;
     
@@ -181,11 +180,14 @@ public:
             return;
         }
         // #2. try to publish command
+        // ROS_WARN("[ODOM] Enter just before pub function");
+        
         pubPositionCommand();
 
         // #3. try to calculate the new state
         if (state == TRAJ && ( (odom.header.stamp - _start_time).toSec() / mag_coeff > (_final_time - _start_time).toSec() ) )
         {
+            // ROS_WARN("[ODOM] Time is exceed : %1.2f", (odom.header.stamp - _start_time).toSec() );
             state = HOVER;
             _traj_flag = quadrotor_msgs::PositionCommand::TRAJECTORY_STATUS_COMPLETED;
         }
@@ -231,42 +233,51 @@ public:
             ROS_WARN("[SERVER] Loading the trajectory.");
             if ((int)traj.trajectory_id < _traj_id) return ;
 
+
             state = TRAJ;
             _traj_flag = quadrotor_msgs::PositionCommand::TRAJECTORY_STATUS_READY;
             _traj_id = traj.trajectory_id;
             _n_segment = traj.num_segment;
+            // ROS_WARN("[SERVER] seg : %d, id : %d, ", _n_segment, _traj_id );
+            if (_n_segment == 0 )
+            {
+                ROS_WARN("[SERVER] zero segment.");
+                return;
+            }
+
             _final_time = _start_time = traj.header.stamp;
-            _Time.resize(_n_segment);
+            _Time.resize(_n_segment+1);
 
             _order.clear();
             int idx;
             for (idx = 0; idx < _n_segment; ++idx)
             {
-                _final_time += ros::Duration(traj.time[idx]);
                 _Time(idx) = traj.time[idx];
                 _order.push_back(traj.order[idx]);
             }
             _Time(idx) = traj.time[idx];
-            
+            for (idx = 0; idx < _n_segment;++idx)
+            {
+                _final_time += ros::Duration(_Time(idx+1)-_Time(idx));
+            }
+            // ROS_WARN("[SERVER] Time is assigned");
 
             _start_yaw = traj.start_yaw;
             _final_yaw = traj.final_yaw;
             mag_coeff  = traj.mag_coeff;
 
-            int max_order = *max_element( begin( _order ), end( _order ) ); 
+            int max_order = 5; 
+            int poly_num1d = max_order+1;
             
-            _PolyCoeff = MatrixXd::Zero( (max_order+1)*_n_segment, 3);
-
-            _coef[_DIM_x] = MatrixXd::Zero(max_order + 1, _n_segment);
-            _coef[_DIM_y] = MatrixXd::Zero(max_order + 1, _n_segment);
-            _coef[_DIM_z] = MatrixXd::Zero(max_order + 1, _n_segment);
+            _PolyCoeff = MatrixXd::Zero( poly_num1d*_n_segment, 3);
+            // ROS_WARN("[SERVER] _PolyCoeff is zerorized ");
             
             ROS_WARN("stack the coefficients");
             idx = 0;
             for (int i = 0; i < _n_segment; ++i)
             {     
-                int order = traj.order[i];
-                int poly_num1d = order + 1;
+                //int order = traj.order[i];
+                
                 for (int j = 0; j < poly_num1d; ++j)
                 {
                     _PolyCoeff(j +i*poly_num1d,        0) = traj.coef_x[idx];
@@ -275,6 +286,9 @@ public:
                     idx++;
                 }
             }
+            // ROS_WARN("coeff is assigned : %d", idx);
+            #if 0
+            #endif
         }
         else if (traj.action == quadrotor_msgs::PolynomialTrajectory::ACTION_ABORT) 
         {
@@ -289,13 +303,14 @@ public:
         }
         if (state_prev !=state)
         {
-            ROS_WARN(" State is changed from %d to %d", state_prev, state);
-            for (int idx = 0; idx < _n_segment; ++idx)
-            {
-                ROS_WARN(" [%d] : %1.2f" , idx, _Time(idx) );
-            }
+            // ROS_WARN(" State is changed from %d to %d", state_prev, state);
+            // for (int idx = 0; idx < _n_segment; ++idx)
+            // {
+            //     ROS_WARN(" [%d] : %1.2f" , idx, _Time(idx) );
+            // }
         }
         state_prev = state;
+        // ROS_WARN("[subTraj] exit function %d", state);
     }
 
     void pubPositionCommand()
@@ -325,6 +340,7 @@ public:
         // #2. locate the trajectory segment
         if (state == TRAJ)
         {
+            // ROS_WARN("[SERVER] Enter Pub of Pos. TRAJ");
             _cmd.header.stamp = _odom.header.stamp;
 
             _cmd.header.frame_id = "/map";
@@ -333,6 +349,7 @@ public:
 
             double t = max(0.0, (_odom.header.stamp - _start_time).toSec());// / mag_coeff;
 
+            // ROS_WARN("[SERVER] Curretn Time : %1.2f sec", t);
             //cout<<"t: "<<t<<endl; 
             _cmd.yaw_dot = 0.0;
             _cmd.yaw = _start_yaw + (_final_yaw - _start_yaw) * t 
@@ -366,21 +383,22 @@ public:
         }
         // #4. just publish
        
-        if (gCount++ % 1000 == 0)
-        {
-            double cur_time = ros::Time::now().toSec() - first_time;
-            ROS_WARN(" [My] (%1.2f s) Position cmd : (%1.2f,%1.2f,%1.2f)", cur_time, _cmd.position.x, _cmd.position.y, _cmd.position.z ) ;
-            for (int i = 0; i < _n_segment; ++i)
-            {
-                ROS_WARN(" [%d] : %1.2f coef : %1.2f,%1.2f,%1.2f,%1.2f,%1.2f,%1.2f" , i, _Time(i),
-                _PolyCoeff( 0+6*i, 0),
-                _PolyCoeff( 1+6*i, 0),
-                _PolyCoeff( 2+6*i, 0),
-                _PolyCoeff( 3+6*i, 0),
-                _PolyCoeff( 4+6*i, 0),
-                _PolyCoeff( 5+6*i, 0) );
-            }
-        }
+        // if (gCount++ % 1000 == 0)
+        // {
+        //     double cur_time = ros::Time::now().toSec() - first_time;
+        //     ROS_WARN(" [My] (%1.2f s) Position cmd : (%1.2f,%1.2f,%1.2f)", cur_time, _cmd.position.x, _cmd.position.y, _cmd.position.z ) ;
+        //     for (int i = 0; i < _n_segment; ++i)
+        //     {
+        //         ROS_WARN(" [%d] : %1.2f coef : %1.2f,%1.2f,%1.2f,%1.2f,%1.2f,%1.2f" , i, _Time(i),
+        //         _PolyCoeff( 0+6*i, 0),
+        //         _PolyCoeff( 1+6*i, 0),
+        //         _PolyCoeff( 2+6*i, 0),
+        //         _PolyCoeff( 3+6*i, 0),
+        //         _PolyCoeff( 4+6*i, 0),
+        //         _PolyCoeff( 5+6*i, 0) );
+        //     }
+        // }
+        // ROS_WARN("[SERVER] Before of publishing cmd");
         _cmd_pub.publish(_cmd);
 
         _vis_cmd.header = _cmd.header;

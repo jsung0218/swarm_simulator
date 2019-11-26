@@ -154,6 +154,7 @@ void rcvOdometryCallBack(const nav_msgs::Odometry odom)
     _odom = odom;
     _odom_time = odom.header.stamp;
 
+    std::vector<double> start_pose; 
     _start_pos(0) = _odom.pose.pose.position.x;
     _start_pos(1) = _odom.pose.pose.position.y;
     _start_pos(2) = _odom.pose.pose.position.z;
@@ -163,6 +164,18 @@ void rcvOdometryCallBack(const nav_msgs::Odometry odom)
     _start_acc(0) = _odom.twist.twist.angular.x;
     _start_acc(1) = _odom.twist.twist.angular.y;
     _start_acc(2) = _odom.twist.twist.angular.z;
+
+    start_pose.push_back(_start_pos(0));
+    start_pose.push_back(_start_pos(1));
+    start_pose.push_back(_start_pos(2));
+    start_pose.push_back(_start_vel(0));
+    start_pose.push_back(_start_vel(1));
+    start_pose.push_back(_start_vel(2));
+    start_pose.push_back(_start_acc(0));
+    start_pose.push_back(_start_acc(1));
+    start_pose.push_back(_start_acc(2));
+
+    _mission.startState[0] = start_pose;
 
     _rcv_odom_time = ros::Time::now();
     // _rrtPathPlaner.setStartPt(_start_pos, _end_pos);  
@@ -174,9 +187,24 @@ void rcvOdometryCallBack(const nav_msgs::Odometry odom)
 
         return sqrt( sq(v[0] - u[0]) + sq(v[1] - u[1]) + sq(v[2] - u[2])  );
     };
-
-    if( _is_traj_exist && getDis(_start_pos, _commit_target) < _eps )
+    static int gCount = 0;
+    static ros::Time gFirstTime = ros::Time::now();
+    double dist = getDis(_start_pos, _commit_target);
+    double duration_time;
+    if(gCount++%50 == 0 )
+    {
+        duration_time = ros::Time::now().toSec() - gFirstTime.toSec();
+        ROS_INFO("[My] (%1.2fsec) Dist : %1.2f (%1.2f,%1.2f,%1.2f), (%1.2f,%1.2f,%1.2f)", 
+                    duration_time, dist, _start_pos.x(), _start_pos.y(), _start_pos.z(), 
+                    _commit_target.x(), _commit_target.y(), _commit_target.z());
+                            
+    }
+    
+    if( _is_traj_exist && dist < _eps )
+    {
+        ROS_WARN("[My] Target arrived..... ");
         _is_target_arrive = true;
+    }
 }
 
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map )
@@ -280,11 +308,9 @@ int trajGeneration(double time_odom_delay)
     _segment_num = RBPPlanner_obj->msgs_traj_info.data.size() - 2 - 1;
 
     _Time.resize(_segment_num+1);
-    for(int m = 0; m < _segment_num; m++){
+    for(int m = 0; m < _segment_num+1; m++){
         _Time(m) = RBPPlanner_obj->msgs_traj_info.data.at(m + 2);
-        // _Time(m) = RBPPlanner_obj->msgs_traj_info.data.at(m + 3);
-        // _Time(m) = RBPPlanner_obj->msgs_traj_info.data.at(m + 3) 
-        //          - RBPPlanner_obj->msgs_traj_info.data.at(m + 2);
+        ROS_WARN("[Demo] %d, Time : %1.2f", m, _Time(m));
     }
 
     _poly_orderList.clear();
@@ -310,6 +336,16 @@ int trajGeneration(double time_odom_delay)
         return -1;
     }
     else{
+        
+        if (_segment_num == 0)
+        {
+            ROS_WARN("[Demo] Trajectory segment is zero");
+            traj.action = quadrotor_msgs::PolynomialTrajectory::ACTION_WARN_IMPOSSIBLE;
+            _traj_pub.publish(traj);
+            _is_traj_exist     = false;
+            _is_target_receive = false;
+            return -1;
+        }
         ROS_WARN("[Demo] Trajectory generated successed");
         traj = getBezierTraj();
         _traj_pub.publish(traj);
@@ -400,8 +436,7 @@ void planInitialTraj()
             // visCommitTraj(_PolyCoeff);
             // visCtrlPoint( _PolyCoeff );
             // visFlightCorridor(_Path, _Radius);
-            ROS_INFO(" [My] planInitialTraj");
-            ROS_INFO(" [My] PlanInit:Commited Target : (%1.2f, %1.2f, %1.2f)", _commit_target(0), _commit_target(1), _commit_target(2));
+            ROS_INFO(" [My] planInitialTraj:Commited Target : (%1.2f, %1.2f, %1.2f)", _commit_target(0), _commit_target(1), _commit_target(2));
             
         }
     }
@@ -415,18 +450,27 @@ void planIncrementalTraj()
     //   visRrt(_rrtPathPlaner.getTree());
     //   return;
     // }
+    static double first_time = ros::Time::now().toSec();
 
-    ros::Time timeBef = ros::Time::now();
+
+    double cur_time = ros::Time::now().toSec() - first_time;
+    if( cur_time < 3)
+    {
+        return;
+    }
+    else
+    {
+        first_time = ros::Time::now().toSec();
+    }
+
+
     // Step 1: Plan Initial Trajectory
     initTrajPlanner_obj.reset(new ECBSPlanner(distmap_obj, _mission, _param));
     if (!initTrajPlanner_obj.get()->update(_param.log)) {
         return;
     }
-    ros::Time timeAft = ros::Time::now();
     
     //_rrtPathPlaner.SafeRegionExpansion(_path_find_limit);
-    
-    double _path_time = (timeAft-timeBef).toSec();
 
     
 
@@ -448,8 +492,7 @@ void planIncrementalTraj()
                 // visBezierTrajectory(_PolyCoeff);
                 // visCommitTraj(_PolyCoeff);
                 // visCtrlPoint (_PolyCoeff);
-                ROS_INFO(" [My] planIncrementalTraj");
-                ROS_INFO(" [My] PlanInc:Commited Target : (%1.2f, %1.2f, %1.2f)", _commit_target(0), _commit_target(1), _commit_target(2));
+                 ROS_INFO(" [My] planIncrementalTraj:Commited Target : (%1.2f, %1.2f, %1.2f)", _commit_target(0), _commit_target(1), _commit_target(2));
             }
         }
     }
@@ -648,9 +691,11 @@ quadrotor_msgs::PolynomialTrajectory getBezierTraj()
     traj.num_segment = _segment_num;
 
     int polyTotalNum = 0;
-    for(auto order:_poly_orderList)
-        polyTotalNum += (order + 1);
-
+    // for(auto order:_poly_orderList)
+    //     polyTotalNum += (order + 1);
+    int maxOrder = 5;
+    int poly_num1d = maxOrder + 1;
+    polyTotalNum = _segment_num*(maxOrder+1);
     traj.coef_x.resize(polyTotalNum);
     traj.coef_y.resize(polyTotalNum);
     traj.coef_z.resize(polyTotalNum);
@@ -658,8 +703,8 @@ quadrotor_msgs::PolynomialTrajectory getBezierTraj()
     int idx = 0;
     for(int i = 0; i < _segment_num; i++ )
     {    
-        int order = _poly_orderList[i];
-        int poly_num1d = order + 1;
+        //int order = _poly_orderList[i];
+        
         
         for(int j =0; j < poly_num1d; j++)
         { 
@@ -732,9 +777,9 @@ inline void getPosFromBezier(const MatrixXd & polyCoeff,  const double & t_now, 
 {
     ret = VectorXd::Zero(3);
 
-    if (t_now > _Time(_segment_num-1) ) {
-        return;
-    }
+    // if (t_now > _Time(_segment_num-1) ) {
+    //     return;
+    // }
 
     int qn = 1;
     Eigen::MatrixXd pva;

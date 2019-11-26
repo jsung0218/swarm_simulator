@@ -2,7 +2,7 @@
 <!-- Arguments Start -->
 
   <!-- Simulation -->
-  <arg name="runsim"                default="true"/>
+  <arg name="runsim"                default="false"/>
   <arg name="log"                   default="true"/>
 
   <!-- <arg name="mission"               default="mission_8agents_15.json"/> -->
@@ -202,6 +202,20 @@
       <param name="plan/batch_size"            value="$(arg plan_batch_size)" />
       <param name="plan/N_b"                   value="$(arg plan_N_b)" />
       <param name="plan/iteration"             value="$(arg plan_iteration)" />
+
+      <param name="planParam/plan_rate"        value="10.0"/>
+      <param name="planParam/safety_margin"    value="0.5" />
+      <param name="planParam/search_margin"    value="0.0" />
+      <param name="planParam/max_radius"       value="5.0" />
+      <param name="planParam/sensing_range"    value="12.0" />
+      <param name="planParam/refine_portion"   value="0.7"  />
+      <param name="planParam/sample_portion"   value="0.3" />
+      <param name="planParam/goal_portion"     value="0.05" />
+      <param name="planParam/path_find_limit"  value="0.1" />
+      <param name="planParam/max_samples"      value="5000" />
+      <param name="planParam/stop_horizon"     value="0.5"  />
+      <param name="planParam/commitTime"       value="2.0"/>
+
 
       <param name="init_x"  value="$(arg init_x)"/>
       <param name="init_y"  value="$(arg init_y)"/>
