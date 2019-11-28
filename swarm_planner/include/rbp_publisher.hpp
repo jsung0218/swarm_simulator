@@ -223,19 +223,19 @@ private:
             // coef[qi].block : (6,3) = ( n+1, xyz)
             pva[qi] = polyder * coef[qi].block((param.n + 1) * index, 0, (param.n + 1), 3);  // size : 6x3 ,(n=5)
 
-            msgs_traj[qi].header.frame_id = "/world";
+            msgs_traj[qi].header.frame_id = "/map";
             msgs_traj[qi].header.stamp.sec = current_time;
 
             geometry_msgs::PoseStamped pos_des;
     
 
-            pos_des.header.frame_id = "/world";
+            pos_des.header.frame_id = "/map";
             pos_des.pose.position.x = pva[qi](0,0);
             pos_des.pose.position.y = pva[qi](0,1);
             pos_des.pose.position.z = pva[qi](0,2);
             
             odom.header.stamp.sec = current_time;
-            odom.header.frame_id = "/world";
+            odom.header.frame_id = "/map";
 
             //set the position
             odom.pose.pose.position.x = pva[qi](0,0);
@@ -252,7 +252,7 @@ private:
             // msgs_pose_quad.position.x = pva[qi](0,0);
             // msgs_pose_quad.position.y = pva[qi](0,1);
             // msgs_pose_quad.position.z = pva[qi](0,2);
-            // msgs_pose_quad.header.frame_id = "/world";
+            // msgs_pose_quad.header.frame_id = "/map";
             msgs_pose_quad = pos_des;
 
 
@@ -272,7 +272,7 @@ private:
             q.setRPY(0,0,0);
             transform.setRotation(q);
             br.sendTransform(tf::StampedTransform(transform, ros::Time::now(),
-                    "world", "/mav"+std::to_string(qi)+"/base_link"));
+                    "map", "/mav"+std::to_string(qi)+"/base_link"));
         }
     }
 
@@ -281,7 +281,7 @@ private:
         for (int qi = 0; qi < qn; qi++) {
             for (int m = 0; m < M+1; m++) {
                 visualization_msgs::Marker mk;
-                mk.header.frame_id = "world";
+                mk.header.frame_id = "map";
                 mk.header.stamp = ros::Time::now();
                 mk.ns = "mav" + std::to_string(qi);
                 mk.type = visualization_msgs::Marker::CUBE;
@@ -327,7 +327,7 @@ private:
             }
 
             visualization_msgs::Marker mk;
-            mk.header.frame_id = "world";
+            mk.header.frame_id = "map";
             mk.ns = "mav" + std::to_string(qi);
             mk.type = visualization_msgs::Marker::CUBE;
             mk.action = visualization_msgs::Marker::ADD;
@@ -386,7 +386,7 @@ private:
                 }
 
                 visualization_msgs::Marker mk;
-                mk.header.frame_id = "world";
+                mk.header.frame_id = "map";
                 mk.ns = "mav" + std::to_string(qj);
 
                 // inter-collision model
@@ -418,7 +418,7 @@ private:
                 mk_array.markers.emplace_back(mk);
 
                 // qj position
-                mk.header.frame_id = "world";
+                mk.header.frame_id = "map";
                 mk.type = visualization_msgs::Marker::SPHERE;
                 mk.action = visualization_msgs::Marker::ADD;
                 mk.id = 1;
@@ -447,7 +447,7 @@ private:
                 mk_array.markers.emplace_back(mk);
 
                 // relative box
-                mk.header.frame_id = "world";
+                mk.header.frame_id = "map";
                 mk.header.stamp = ros::Time::now();
                 mk.type = visualization_msgs::Marker::CUBE;
                 mk.action = visualization_msgs::Marker::ADD;
@@ -497,7 +497,7 @@ private:
         for(int qj = 0; qj < qn; qj++){
             // current position
             visualization_msgs::Marker mk;
-            mk.header.frame_id = "world";
+            mk.header.frame_id = "map";
             mk.header.stamp = ros::Time::now();
             mk.ns = "mav" + std::to_string(qj);
             mk.action = visualization_msgs::Marker::ADD;
@@ -652,7 +652,7 @@ private:
         visualization_msgs::MarkerArray mk_array;
         for (int qi = 0; qi < qn; qi++) {
             visualization_msgs::Marker mk;
-            mk.header.frame_id = "world";
+            mk.header.frame_id = "map";
             mk.ns = "colBox";
             mk.type = visualization_msgs::Marker::SPHERE;
             mk.action = visualization_msgs::Marker::ADD;

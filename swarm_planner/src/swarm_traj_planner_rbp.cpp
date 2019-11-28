@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
             // Build 3D Euclidean Distance Field
             timer_step.reset();
             {
-                float maxDist = 1;
+                float maxDist = 2;
                 octomap::point3d min_point3d(param.world_x_min, param.world_y_min, param.world_z_min);
                 octomap::point3d max_point3d(param.world_x_max, param.world_y_max, param.world_z_max);
                 distmap_obj.reset(new DynamicEDTOctomap(maxDist, octree_obj.get(), min_point3d, max_point3d, false));
@@ -188,7 +188,7 @@ int main(int argc, char* argv[]) {
                           pow(odom_target.at(1)-mission.goalState[0].at(1), 2)+
                           pow(odom_target.at(2)-mission.goalState[0].at(2), 2) );
                           
-            if (dist < 0.5) {
+            if (dist < 0.1) {
             //if( current_time > 10){
 
                 has_path = false;
@@ -216,17 +216,28 @@ int main(int argc, char* argv[]) {
                     // Mission
 
 #if 1
-                mission.startState[0] = mission.goalState[0];                    
+                float grid_x_min = ceil((param.world_x_min + SP_EPSILON) / param.grid_xy_res) * param.grid_xy_res;
+                float grid_y_min = ceil((param.world_y_min + SP_EPSILON) / param.grid_xy_res) * param.grid_xy_res;
+                float grid_z_min = ceil((param.world_z_min + SP_EPSILON) / param.grid_z_res) * param.grid_z_res;
+
+                mission.startState[0] = mission.goalState[0]; 
+                // mission.startState[0][0] = (int)round((mission.startState[0][0] - grid_x_min) / param.grid_xy_res);
+                // mission.startState[0][1] = (int)round((mission.startState[0][1] - grid_y_min) / param.grid_xy_res);
+                // mission.startState[0][2] = (int)round((mission.startState[0][2] - grid_z_min) / param.grid_z_res);
+                
                 std::vector<double> temp_state(9,0);                    
                 
                 octomap::point3d p;
-
+        
                 // while( dist < 5 || distObs <= 1)
                 while( dist < 5 )
                 {
-                    x    = rand_x(eng);
-                    y    = rand_y(eng);
-                    z    = rand_z(eng);
+                    x = (int)round((rand_x(eng) - grid_x_min) / param.grid_xy_res);
+                    y = (int)round((rand_y(eng) - grid_y_min) / param.grid_xy_res);
+                    z = (int)round((rand_z(eng) - grid_z_min) / param.grid_z_res);
+                    // x    = round(rand_x(eng) / 0.5;
+                    // y    = rand_y(eng);
+                    // z    = rand_z(eng);
                     distObs = distmap_obj.get()->getDistance( octomap::point3d(x,y,z) );
                     assert(distObs>=0);
                     dist = sqrt ( pow( mission.startState[0].at(0)-x, 2)+
@@ -236,7 +247,9 @@ int main(int argc, char* argv[]) {
                     if (distObs == DynamicEDTOctomap::distanceValue_Error || distObs < 0.7 - SP_EPSILON_FLOAT )
                         dist = 0;
                 }
-                ROS_WARN( "Target goal : (%1.2f,%1.2f,%1.2f)", x, y, z);
+                ROS_WARN( "Target start, goal : (%1.2f,%1.2f,%1.2f) -> (%1.2f,%1.2f,%1.2f)", 
+                            mission.startState[0][0], mission.startState[0][1], mission.startState[0][2],
+                            x, y, z);
                 ROS_WARN( "distance from start and obs : (%1.2f,%1.2f)", dist, distObs);
 
                 temp_state.clear();

@@ -106,71 +106,8 @@
     <param name="world/margin"               value="$(arg world_margin)" />
   </node>
 
-  <node pkg="swarm_planner" type="swarm_traj_planner_rbp" name="swarm_traj_planner_rbp" output="screen" >
-  <!-- <node pkg="swarm_planner" type="swarm_traj_planner_rbp" name="swarm_traj_planner_rbp" output="screen" launch-prefix="xterm -e gdb args" > -->
-    <param name="log"                        value="$(arg log)" />
-    
-    <param name="mission"                    value="$(find swarm_planner)/missions/$(arg mission)" />
-    <param name="mav_name"                   value="$(arg master_name)" />
-    <param name="world/x_min"                value="$(arg world_x_min)" />
-    <param name="world/y_min"                value="$(arg world_y_min)" />
-    <param name="world/z_min"                value="$(arg world_z_min)" />
-    <param name="world/x_max"                value="$(arg world_x_max)" />
-    <param name="world/y_max"                value="$(arg world_y_max)" />
-    <param name="world/z_max"                value="$(arg world_z_max)" />
 
-    <param name="ecbs/w"                     value="$(arg ecbs_w)" />
-    <param name="grid/xy_res"                value="$(arg grid_xy_res)" />
-    <param name="grid/z_res"                 value="$(arg grid_z_res)" />
-    <param name="grid/margin"                value="$(arg grid_margin)" />
-
-    <param name="box/xy_res"                 value="$(arg box_xy_res)" />
-    <param name="box/z_res"                  value="$(arg box_z_res)" />
-
-    <param name="plan/time_step"             value="$(arg plan_time_step)" />
-    <param name="plan/downwash"              value="$(arg plan_downwash)" />
-    <param name="plan/n"                     value="$(arg plan_n)" />
-    <param name="plan/phi"                   value="$(arg plan_phi)" />
-
-    <param name="plan/sequential"            value="$(arg plan_sequential)" />
-    <param name="plan/batch_size"            value="$(arg plan_batch_size)" />
-    <param name="plan/N_b"                   value="$(arg plan_N_b)" />
-    <param name="plan/iteration"             value="$(arg plan_iteration)" />
-  </node>
-
-<!-- 
-  <node pkg="swarm_planner" type="MPFollower" name="MPFollower" output="screen" launch-prefix="xterm -e gdb args" if="$(arg enable_follower)">
-    <param name="log"                        value="$(arg log)" />
-    
-    <param name="mission"                    value="$(find swarm_planner)/missions/$(arg mission_follwer)" />
-    <param name="mav_name"                   value="$(arg slave_name)" />
-    <param name="world/x_min"                value="$(arg world_x_min)" />
-    <param name="world/y_min"                value="$(arg world_y_min)" />
-    <param name="world/z_min"                value="$(arg world_z_min)" />
-    <param name="world/x_max"                value="$(arg world_x_max)" />
-    <param name="world/y_max"                value="$(arg world_y_max)" />
-    <param name="world/z_max"                value="$(arg world_z_max)" />
-
-    <param name="ecbs/w"                     value="$(arg ecbs_w)" />
-    <param name="grid/xy_res"                value="$(arg grid_xy_res)" />
-    <param name="grid/z_res"                 value="$(arg grid_z_res)" />
-    <param name="grid/margin"                value="$(arg grid_margin)" />
-
-    <param name="box/xy_res"                 value="$(arg box_xy_res)" />
-    <param name="box/z_res"                  value="$(arg box_z_res)" />
-
-    <param name="plan/time_step"             value="$(arg plan_time_step_slave)" />
-    <param name="plan/downwash"              value="$(arg plan_downwash)" />
-    <param name="plan/n"                     value="$(arg plan_n)" />
-    <param name="plan/phi"                   value="$(arg plan_phi)" />
-
-    <param name="plan/sequential"            value="$(arg plan_sequential)" />
-    <param name="plan/batch_size"            value="$(arg plan_batch_size)" />
-    <param name="plan/N_b"                   value="$(arg plan_N_b)" />
-    <param name="plan/iteration"             value="$(arg plan_iteration)" />
-  </node>  -->
-
-  <node pkg="swarm_planner" type="MPF_Follower" name="MPF_Follower" output="screen" launch-prefix="xterm -e gdb --args" if="$(arg enable_follower)">
+  <node pkg="swarm_planner" type="MPF_Follower" name="MPF_Follower" output="screen" launch-prefix="xterm -e gdb --args">
       <remap from="~waypoints"       to="/waypoint_generator/waypoints"/>
       <remap from="~odometry"        to="/odom/fake_odom"/>
       <remap from="~PointCloud"      to="/map_server/local_map" />
@@ -247,7 +184,7 @@
     <param name="init_y"  value="$(arg init_y)"/>
     <param name="init_z"  value="$(arg init_z)"/>
   </node>
-<!-- 
+
 <node pkg="odom_visualization" name="odom_visualization" type="odom_visualization" output="screen">
         <remap from="~cmd"  to="/position_cmd"/>
         <param name="color/a" value="0.8"/>    
@@ -257,7 +194,7 @@
         <param name="covariance_scale" value="100.0"/>   
         <param name="robot_scale" value="1.0"/>       
         <param name="frame_id"    value="map"/>      
-</node> -->
+</node>
 
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find swarm_planner)/launch/rviz_config/rviz_config_follow.rviz" if="$(arg runsim)"/>
 

@@ -115,7 +115,7 @@ void RandomMapGenerate(const SwarmPlanning::Mission& mission)
 void pubSensedPoints()
 {
     pcl::toROSMsg(cloudMap, globalMap_pcd);
-    globalMap_pcd.header.frame_id = "world";
+    globalMap_pcd.header.frame_id = "map";
     all_map_pub.publish(globalMap_pcd);
 }
 
