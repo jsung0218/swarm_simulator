@@ -3,13 +3,13 @@
 
   <!-- Simulation -->
   <arg name="runsim"                default="true"/>
-  <arg name="log"                   default="false"/>
+  <arg name="log"                   default="true"/>
 
   <!-- <arg name="mission"               default="mission_8agents_15.json"/> -->
   <arg name="mission"               default="mission_1agents_MPF.json"/>
   <arg name="mission_follwer"       default="mission_1agents_MPF2.json"/>
   <arg name="replay"                default="false"/>
-  <arg name="replay_map"            default="replay_2obs_1.bt"/>
+  <arg name="replay_map"            default="replay_slave_1.bt"/>
   <arg name="master_name"            default="master"/>
   <arg name="slave_name"            default="slave"/>
   <arg name="enable_follower"       default="true" />
@@ -32,7 +32,7 @@
   <arg name="world_resolution"      default="0.1"/>
 
   <!-- Obstacles -->
-  <arg name="world_obs_num"         default="20"/>
+  <arg name="world_obs_num"         default="10"/>
   <arg name="world_r_min"           default="0.6"/>
   <arg name="world_r_max"           default="0.6"/>
   <arg name="world_h_min"           default="2.0"/>
@@ -50,8 +50,8 @@
   <arg name="box_z_res"             default="0.1"/>
 
   <!-- RBPPlanner Parameters -->
-  <arg name="plan_time_step"        default="0.1"/>
-  <arg name="plan_time_step_slave"        default="0.01"/>
+  <arg name="plan_time_step"        default="1"/>
+  <arg name="plan_time_step_slave"  default="1"/>
   <arg name="plan_downwash"         default="2.0"/>
   <arg name="plan_n"                default="5"/>
   <arg name="plan_phi"              default="3"/>  
@@ -107,7 +107,7 @@
   </node>
 
 
-  <node pkg="swarm_planner" type="MPF_Follower" name="MPF_Follower" output="screen" launch-prefix="xterm -e gdb --args">
+  <node pkg="swarm_planner" type="MPF_Follower" name="MPF_Follower" output="screen" >
       <remap from="~waypoints"       to="/waypoint_generator/waypoints"/>
       <remap from="~odometry"        to="/odom/fake_odom"/>
       <remap from="~PointCloud"      to="/map_server/local_map" />
@@ -151,16 +151,16 @@
       <param name="planParam/goal_portion"     value="0.05" />
       <param name="planParam/path_find_limit"  value="0.1" />
       <param name="planParam/max_samples"      value="5000" />
-      <param name="planParam/stop_horizon"     value="0.5"  />
-      <param name="planParam/commitTime"       value="5.0"/>
+      <param name="planParam/stop_horizon"     value="3.0"  />
+      <param name="planParam/commitTime"       value="7.0"/>
 
-
+<!-- 
       <param name="init_x"  value="$(arg init_x)"/>
       <param name="init_y"  value="$(arg init_y)"/>
       <param name="init_z"  value="$(arg init_z)"/>
       <param name="demoParam/target_x"     value="$(arg end_x)" />
       <param name="demoParam/target_y"     value="$(arg end_y)" />
-      <param name="demoParam/target_z"     value="$(arg end_z)" />
+      <param name="demoParam/target_z"     value="$(arg end_z)" /> -->
       <param name="demoParam/goal_input"   value="true"  />
       <param name="demoParam/is_limit_vel" value="true"  />
       <param name="demoParam/is_limit_acc" value="false" />
@@ -168,7 +168,7 @@
 
     </node>
 
-  <node pkg = "swarm_planner" type = "MPF_traj_server" output = "screen" name = "trajectory_server"  if="$(arg enable_follower)">
+  <node pkg = "swarm_planner" type = "MPF_traj_server" output = "screen" name = "trajectory_server"   if="$(arg enable_follower)">
   <!-- <node pkg = "swarm_planner" type = "MPF_traj_server" output = "screen" name = "trajectory_server" launch-prefix="xterm -e gdb args"  if="$(arg enable_follower)"> -->
           <remap  from = "~trajectory"        to = "/MPF_Follower/trajectory"/>
           <remap  from = "~odometry"          to = "/odom/fake_odom"/>
@@ -177,7 +177,7 @@
           <param name="optimization/poly_order_min"           value="5"/> 
           <param name="optimization/poly_order_max"           value="5"/> 
   </node>
-  <node pkg  = "swarm_planner" type = "odom_generator" output = "screen" name = "odom_generator" if="$(arg enable_follower)">   
+  <node pkg  = "swarm_planner" type = "odom_generator" output = "screen" name = "odom_generator"  if="$(arg enable_follower)">   
     <remap from = "~odometry"  to = "/odom/fake_odom"/>
     <remap from = "~command"   to = "/position_cmd"/>
     <param name="init_x"  value="$(arg init_x)"/>

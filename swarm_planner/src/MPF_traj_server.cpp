@@ -378,7 +378,11 @@ public:
             _cmd.acceleration.y =  pva(2,1);
             _cmd.acceleration.z =  pva(2,2);
 
-            //ROS_WARN("[SERVER] the time : %.3lf\n, n = %d, m = %d", t, _n_order, _n_segment);
+            /*
+            ROS_WARN("[SERVER] cmd %1.2f sec [%d] (%1.2f,%1.2f,%1.2f),(%1.2f,%1.2f,%1.2f)", 
+                            t, index, pva(0,0), pva(0,1), pva(0,2),
+                            pva(1,0), pva(1,1), pva(1,2));
+            */
 
         }
         // #4. just publish

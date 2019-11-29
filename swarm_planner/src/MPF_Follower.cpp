@@ -265,14 +265,14 @@ int trajGeneration(double time_odom_delay)
 
     start_pose.clear();
     end_pose.clear();
+
     
     if(_is_traj_exist){
-        double time_est_opt = 0.03;      
+        double time_est_opt = 0.03+0.20;      
         double t_s =  (_odom_time - _start_time).toSec() + time_est_opt + time_odom_delay;     
 
         VectorXd state;
         getStateFromBezier(_PolyCoeff, t_s, state);
-
         for(int i = 0; i < 9; i++ )
         {
             start_pose.push_back(state(i) );
@@ -339,7 +339,7 @@ int trajGeneration(double time_odom_delay)
     _Time.resize(_segment_num+1);
     for(int m = 0; m < _segment_num+1; m++){
         _Time(m) = RBPPlanner_obj->msgs_traj_info.data.at(m + 2);
-        ROS_WARN("[Demo] %d, Time : %1.2f", m, _Time(m));
+        //ROS_WARN("[Demo] %d, Time : %1.2f", m, _Time(m));
     }
 
     _poly_orderList.clear();
@@ -473,7 +473,7 @@ void planIncrementalTraj()
 
 
     double cur_time = ros::Time::now().toSec() - first_time;
-    if( cur_time < 0.5)
+    if( cur_time < 2)
     {
         return;
     }
@@ -484,11 +484,11 @@ void planIncrementalTraj()
     }
 
 
-    // Step 1: Plan Initial Trajectory
-    initTrajPlanner_obj.reset(new ECBSPlanner(distmap_obj, _mission, _param));
-    if (!initTrajPlanner_obj.get()->update(_param.log)) {
-        return;
-    }
+    // // Step 1: Plan Initial Trajectory
+    // initTrajPlanner_obj.reset(new ECBSPlanner(distmap_obj, _mission, _param));
+    // if (!initTrajPlanner_obj.get()->update(_param.log)) {
+    //     return;
+    // }
     
     //_rrtPathPlaner.SafeRegionExpansion(_path_find_limit);
 
@@ -556,12 +556,12 @@ int main(int argc, char** argv)
     node_handle.param("planParam/stop_horizon",    _stop_time,       5.0);     
     node_handle.param("planParam/commitTime",      _time_commit,      1.0);
 
-    node_handle.param("init_x",        _start_pos(0),       0.0);
-    node_handle.param("init_y",        _start_pos(1),       0.0);
-    node_handle.param("init_z",        _start_pos(2),       0.0);
-    node_handle.param("demoParam/target_x",        _end_pos(0),       0.0);
-    node_handle.param("demoParam/target_y",        _end_pos(1),       0.0);
-    node_handle.param("demoParam/target_z",        _end_pos(2),       0.0);
+    node_handle.param("init_x",        _start_pos(0),       -8.0);
+    node_handle.param("init_y",        _start_pos(1),       -4.0);
+    node_handle.param("init_z",        _start_pos(2),       2.0);
+    node_handle.param("demoParam/target_x",        _end_pos(0),       8.0);
+    node_handle.param("demoParam/target_y",        _end_pos(1),       4.5);
+    node_handle.param("demoParam/target_z",        _end_pos(2),       2.0);
     node_handle.param("demoParam/goal_input",      _use_preset_goal, true);
     node_handle.param("demoParam/is_limit_vel",    _is_limit_vel,    true);
     node_handle.param("demoParam/is_limit_acc",    _is_limit_acc,    true);
@@ -840,7 +840,7 @@ bool checkSafeTrajectory(double check_time)
     double t_s = max(0.0, (_odom.header.stamp - _start_time).toSec());      
    
 
-    for( double t = t_s ; t < _Time(_segment_num-2) ; t += 0.02 )
+    for( double t = t_s ; t < _Time(_segment_num) ; t += 0.02 )
     {
         if(t > check_time) break; // _stop_time is check_time (max: 1, where _stop is 0.5sec)
 
@@ -917,7 +917,7 @@ void visBezierTrajectory(MatrixXd polyCoeff)
     cur.setZero();
     pre.setZero();
 
-    //traj_pts_pcd.points.clear();
+    traj_pts_pcd.points.clear();
         
     int num_time = _Time.size();
 

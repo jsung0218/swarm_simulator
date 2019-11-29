@@ -370,6 +370,11 @@ private:
 //        deq_obj.reset(new Eigen::MatrixXd(N * (2*n + (M-1)*n), outdim));
 //        deq_obj->setZero();
         deq = Eigen::MatrixXd::Zero(N * (2*phi + (M-1)*phi), outdim);
+        ROS_WARN( " Mission State");
+        ROS_WARN("[Planner] state (%1.2f,%1.2f,%1.2f),(%1.2f,%1.2f,%1.2f),(%1.2f,%1.2f,%1.2f)", 
+                        mission.startState[0][0], mission.startState[0][1], mission.startState[0][2],
+                        mission.startState[0][3], mission.startState[0][4], mission.startState[0][5],
+                        mission.startState[0][6], mission.startState[0][7], mission.startState[0][8] );
         for (int qi = 0; qi < N; qi++) {
             Eigen::MatrixXd d_waypoints = Eigen::MatrixXd::Zero(2 * phi, outdim);
             Eigen::MatrixXd d_cont = Eigen::MatrixXd::Zero((M - 1) * phi, outdim);

@@ -1,0 +1,5 @@
+./log/QPmodel copy_1 agent.lp
+./log/QPmodel_master.lp
+./log/QPmodel copy_onlyEQ.lp
+./log/QPmodel.lp
+./QPmodel.lp
