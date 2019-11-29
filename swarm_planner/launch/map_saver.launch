@@ -14,6 +14,6 @@
 
   <!-- Nodes -->
 
-  <node pkg="octomap_server" type="octomap_saver" name="octomap_saver" args="$(find swarm_planner)/worlds/replay_slave_1.bt"/>
+  <node pkg="octomap_server" type="octomap_saver" name="octomap_saver" args="$(find swarm_planner)/worlds/replay_target_follow_1.bt"/>
 
 </launch>

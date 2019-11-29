@@ -155,7 +155,8 @@ int main (int argc, char** argv) {
     int count = 0;
     while (ros::ok())
     {
-        if(count < 100) {
+    //    if(count < 100) {
+        if(1){
             pubSensedPoints();
             count++;
         }

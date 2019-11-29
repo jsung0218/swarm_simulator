@@ -188,7 +188,7 @@ public:
         if (state == TRAJ && ( (odom.header.stamp - _start_time).toSec() / mag_coeff > (_final_time - _start_time).toSec() ) )
         {
             // ROS_WARN("[ODOM] Time is exceed : %1.2f", (odom.header.stamp - _start_time).toSec() );
-             state = HOVER;
+            state = HOVER;
             _traj_flag = quadrotor_msgs::PositionCommand::TRAJECTORY_STATUS_COMPLETED;
         }
     }

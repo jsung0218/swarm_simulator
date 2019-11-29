@@ -163,6 +163,32 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     _is_traj_exist      = false;
 }
 
+bool checkInobsbox(const Vector3d& pt)
+{
+    double x = pt.x();
+    double y = pt.y();
+    double z = pt.z();
+
+    ROS_WARN("[checkInobsbox] Checking if target exists in SFC (size:%d), ", corridor_obj->SFC[0].size());
+    for (int bi = 0; bi < corridor_obj->SFC[0].size(); bi++)
+    {
+        std::vector<double> obstacle_box = corridor_obj->SFC[0][bi].first;
+        assert( obstacle_box.size() == 6);
+        if( ( obstacle_box[0] > x ||  obstacle_box[3] < x) ||
+            ( obstacle_box[1] > y ||  obstacle_box[4] < y) ||
+            ( obstacle_box[2] > z ||  obstacle_box[5] < z) )
+        {
+            ROS_WARN("[checkInobsbox] Target(%1.2f,%1.2f,%1.2f) is located in obs box.");
+            ROS_WARN("[checkInobsbox] obsbox(%1.2f,%1.2f),(%1.2f,%1.2f),(%1.2f,%1.2f)", 
+                                    obstacle_box[0],obstacle_box[3],
+                                    obstacle_box[1],obstacle_box[4],
+                                    obstacle_box[2],obstacle_box[5] );
+            return true;
+        }
+    }
+    return false;
+}
+
 void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
 {
     // if(has_path)
@@ -172,13 +198,12 @@ void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
 
     static double first_time = ros::Time::now().toSec();
     double cur_time = ros::Time::now().toSec() - first_time;
+    double t_s =  (odom_msg.header.stamp - _start_time).toSec();
+
     double x, y, z;
+    double update_period = 2.0;  // sec
 
-    float grid_x_min = ceil((_param.world_x_min + SP_EPSILON) / _param.grid_xy_res) * _param.grid_xy_res;
-    float grid_y_min = ceil((_param.world_y_min + SP_EPSILON) / _param.grid_xy_res) * _param.grid_xy_res;
-    float grid_z_min = ceil((_param.world_z_min + SP_EPSILON) / _param.grid_z_res) * _param.grid_z_res;
-
-    if( cur_time < 1 )
+    if( cur_time < update_period )
     {
         return;
     }
@@ -188,20 +213,24 @@ void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
         y = (int)round((odom_msg.pose.pose.position.y));
         z = (int)round((odom_msg.pose.pose.position.z));
 
-    _end_pos(0) = x;
-    _end_pos(1) = y;
-    _end_pos(2) = 2;
-    _end_vel(0) = odom_msg.twist.twist.linear.x;
-    _end_vel(1) = odom_msg.twist.twist.linear.y;
-    _end_vel(2) = odom_msg.twist.twist.linear.z;
-    _end_acc(0) = odom_msg.twist.twist.angular.x;
-    _end_acc(1) = odom_msg.twist.twist.angular.y;
-    _end_acc(2) = odom_msg.twist.twist.angular.z;
-    first_time = ros::Time::now().toSec();
+        _end_pos = {x,y,2};
+        
+        Vector3d dir_vec;
+        Vector3d dir_acc;
+        double vel_mag = _end_vel.norm();
+        double acc_mag = _end_acc.norm();
+        dir_vec = (_end_pos-_start_pos).normalized() * vel_mag;
+        dir_acc = (_end_pos-_start_pos).normalized() * acc_mag;
+
+        _end_vel = dir_vec;
+        _end_acc = dir_acc;
+        
+        first_time = ros::Time::now().toSec();
         _is_target_receive  = true;
 
-    ROS_WARN("[Target] %1.2f sec (%1.2f,%1.2f,%1.2f),(%1.2f,%1.2f,%1.2f)", 
-                            cur_time, _end_pos(0), _end_pos(1),_end_pos(2),
+    
+        ROS_WARN("[odomTargetCallback] %1.2fs End P(%1.2f,%1.2f,%1.2f),V(%1.2f,%1.2f,%1.2f)", 
+                            t_s, _end_pos(0), _end_pos(1),_end_pos(2),
                                 _end_vel(0), _end_vel(1),_end_vel(2) );
 
     }
@@ -266,7 +295,8 @@ void rcvOdometryCallBack(const nav_msgs::Odometry odom)
     
     if( _is_traj_exist && dist < _eps )
     {
-        ROS_WARN("[My] Target arrived..... ");
+        // ROS_WARN("[rcvOdometryCallBack] Commit Target arrived..... ");
+        ROS_WARN_ONCE("[rcvOdometryCallBack] Commit Target arrived..... ");
         _is_target_arrive = true;
     }
 }

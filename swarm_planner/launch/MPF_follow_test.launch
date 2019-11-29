@@ -9,7 +9,7 @@
   <arg name="mission"               default="mission_1agents_MPF.json"/>
   <arg name="mission_follwer"       default="mission_1agents_MPF2.json"/>
   <arg name="replay"                default="false"/>
-  <arg name="replay_map"            default="replay_slave_1.bt"/>
+  <arg name="replay_map"            default="replay_target_follow_1.bt"/>
   <arg name="master_name"            default="master"/>
   <arg name="slave_name"            default="slave"/>
   <arg name="enable_follower"       default="true" />
