@@ -54,6 +54,8 @@ ros::Publisher _vis_target_points;
 ros::Publisher _vis_traj_points;
 ros::Publisher _vis_commit_traj_points;
 ros::Publisher _vis_stop_traj_points;
+ros::Publisher _vis_initTraj_points;
+ros::Publisher _vis_obsBox_points;
 ros::Subscriber _odom_sub;
 ros::Subscriber _dest_pts_sub;
 ros::Subscriber _map_sub;
@@ -73,7 +75,8 @@ double _safety_margin, _search_margin, _max_radius, _sensing_range, _planning_ra
 int    _minimize_order, _poly_order_min, _poly_order_max, _max_samples;
 bool   _use_preset_goal, _is_limit_vel, _is_limit_acc, _is_print;
 
-Vector3d _start_pos, _start_vel, _start_acc, _commit_target, _end_pos;
+Vector3d _start_pos, _start_vel, _start_acc, _commit_target;
+Vector3d _end_pos, _end_vel, _end_acc;
 double _time_limit_1, _time_limit_2;
 nav_msgs::Odometry _odom;
 
@@ -101,6 +104,8 @@ sensor_msgs::PointCloud2 traj_pts, target_pts, traj_commit_pts, traj_stop_pts;
 PointCloud<PointXYZ> traj_pts_pcd, target_pts_pcd, traj_commit_pts_pcd, traj_stop_pts_pcd;
 visualization_msgs::MarkerArray path_vis;
 visualization_msgs::MarkerArray ctrlPt_vis;
+visualization_msgs::MarkerArray initTraj_vis;
+visualization_msgs::MarkerArray obsBox_vis;
 
 // Submodules
 std::shared_ptr<octomap::OcTree> octree_obj;
@@ -121,6 +126,8 @@ void visCommitTraj(MatrixXd polyCoeff);
 void visBezierTrajectory(MatrixXd polyCoeff);
 void visCtrlPoint(MatrixXd polyCoeff);
 void visFlightCorridor(MatrixXd path, VectorXd radius);
+void visInitTraj(void);
+void visobsBox(void);
 
 
 void octomapCallback(const octomap_msgs::Octomap& octomap_msg)
@@ -163,19 +170,47 @@ void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
     if(odom_msg.pose.pose.position.z < 0.0)
       return;
 
-    _end_pos(0) = odom_msg.pose.pose.position.x;
-    _end_pos(1) = odom_msg.pose.pose.position.y;
-    _end_pos(2) = odom_msg.pose.pose.position.x;
-    _end_pos(3) = odom_msg.twist.twist.linear.x;
-    _end_pos(4) = odom_msg.twist.twist.linear.y;
-    _end_pos(5) = odom_msg.twist.twist.linear.z;
-    _end_pos(6) = odom_msg.twist.twist.angular.x;
-    _end_pos(7) = odom_msg.twist.twist.angular.y;
-    _end_pos(8) = odom_msg.twist.twist.angular.z;
+    static double first_time = ros::Time::now().toSec();
+    double cur_time = ros::Time::now().toSec() - first_time;
+    double x, y, z;
 
-    _is_target_receive  = true;
-    _is_target_arrive   = false;
-    _is_traj_exist      = false;
+    float grid_x_min = ceil((_param.world_x_min + SP_EPSILON) / _param.grid_xy_res) * _param.grid_xy_res;
+    float grid_y_min = ceil((_param.world_y_min + SP_EPSILON) / _param.grid_xy_res) * _param.grid_xy_res;
+    float grid_z_min = ceil((_param.world_z_min + SP_EPSILON) / _param.grid_z_res) * _param.grid_z_res;
+
+    if( cur_time < 1 )
+    {
+        return;
+    }
+    else
+    {
+        x = (int)round((odom_msg.pose.pose.position.x));
+        y = (int)round((odom_msg.pose.pose.position.y));
+        z = (int)round((odom_msg.pose.pose.position.z));
+
+    _end_pos(0) = x;
+    _end_pos(1) = y;
+    _end_pos(2) = 2;
+    _end_vel(0) = odom_msg.twist.twist.linear.x;
+    _end_vel(1) = odom_msg.twist.twist.linear.y;
+    _end_vel(2) = odom_msg.twist.twist.linear.z;
+    _end_acc(0) = odom_msg.twist.twist.angular.x;
+    _end_acc(1) = odom_msg.twist.twist.angular.y;
+    _end_acc(2) = odom_msg.twist.twist.angular.z;
+    first_time = ros::Time::now().toSec();
+        _is_target_receive  = true;
+
+    ROS_WARN("[Target] %1.2f sec (%1.2f,%1.2f,%1.2f),(%1.2f,%1.2f,%1.2f)", 
+                            cur_time, _end_pos(0), _end_pos(1),_end_pos(2),
+                                _end_vel(0), _end_vel(1),_end_vel(2) );
+
+    }
+
+
+    
+
+    // _is_target_arrive   = false;
+    // _is_traj_exist      = false;
 }
 
 void rcvOdometryCallBack(const nav_msgs::Odometry odom)
@@ -292,12 +327,12 @@ int trajGeneration(double time_odom_delay)
     end_pose.push_back(_end_pos.x());
     end_pose.push_back(_end_pos.y());
     end_pose.push_back(_end_pos.z());
-    end_pose.push_back(0);
-    end_pose.push_back(0);
-    end_pose.push_back(0);
-    end_pose.push_back(0);
-    end_pose.push_back(0);
-    end_pose.push_back(0);
+    end_pose.push_back(_end_vel.x());
+    end_pose.push_back(_end_vel.y());
+    end_pose.push_back(_end_vel.z());
+    end_pose.push_back(_end_acc.x());
+    end_pose.push_back(_end_acc.y());
+    end_pose.push_back(_end_acc.z());
 
     _mission.startState[0] = start_pose;
     _mission.goalState[0] = end_pose;
@@ -451,6 +486,9 @@ void planInitialTraj()
         if( trajGeneration( _path_time ) == 1 ){   
             _commit_target = getCommitedTarget();
             // _rrtPathPlaner.resetRoot(_commit_target);
+
+            visInitTraj();
+            visobsBox();
             visBezierTrajectory(_PolyCoeff);
             visCommitTraj(_PolyCoeff);
             visCtrlPoint( _PolyCoeff );
@@ -509,6 +547,8 @@ void planIncrementalTraj()
                 // _rrtPathPlaner.resetRoot(_commit_target);  
 
                 ros::Time time_1 = ros::Time::now();
+                visInitTraj();
+                visobsBox();
                 visBezierTrajectory(_PolyCoeff);
                 visCommitTraj(_PolyCoeff);
                 visCtrlPoint (_PolyCoeff);
@@ -673,7 +713,9 @@ int main(int argc, char** argv)
     _vis_traj_points        = node_handle.advertise<sensor_msgs::PointCloud2>("trajectory_points",          1);
     _vis_commit_traj_points = node_handle.advertise<sensor_msgs::PointCloud2>("trajectory_commit_points",   1);
     _vis_stop_traj_points   = node_handle.advertise<sensor_msgs::PointCloud2>("trajectory_stop_points",     1);
-
+    _vis_initTraj_points    = node_handle.advertise<visualization_msgs::MarkerArray>("initTrajectory_points",      1);
+    _vis_obsBox_points    = node_handle.advertise<visualization_msgs::MarkerArray>("obsBox_points",      1);
+    
     /* timer */
     _planning_timer = node_handle.createTimer(ros::Duration(1.0/_planning_rate), planningCallBack);
 
@@ -1034,4 +1076,100 @@ void visCtrlPoint(MatrixXd polyCoeff)
 //   }
 
 //   _vis_ctrl_pts_pub.publish(ctrlPt_vis);
+}
+
+void visInitTraj(void) {
+    visualization_msgs::MarkerArray mk_array;
+    for(int i = 0; i < _segment_num; i++)
+    {   
+        visualization_msgs::Marker mk;
+        mk.header.frame_id = "map";
+        mk.header.stamp = ros::Time::now();
+        mk.ns = "mav_follower";
+        mk.type = visualization_msgs::Marker::CUBE;
+        mk.action = visualization_msgs::Marker::ADD;
+
+        mk.pose.orientation.x = 0.0;
+        mk.pose.orientation.y = 0.0;
+        mk.pose.orientation.z = 0.0;
+        mk.pose.orientation.w = 1.0;
+
+        mk.color.a = 1.0;
+        mk.color.r = 1.0;
+        mk.color.g = 0.0;
+        mk.color.b = 0.0;
+
+        mk.id = i;
+        octomap::point3d p_init = initTrajPlanner_obj->initTraj[0][i];
+        mk.pose.position.x = p_init.x();
+        mk.pose.position.y = p_init.y();
+        mk.pose.position.z = p_init.z();
+
+        mk.scale.x = 0.1;
+        mk.scale.y = 0.1;
+        mk.scale.z = 0.1;
+
+        mk_array.markers.emplace_back(mk);
+    }
+    initTraj_vis = mk_array;
+    
+    _vis_initTraj_points.publish(initTraj_vis);
+}
+
+void visobsBox( void ){
+
+    double t_s = max(0.0, (_odom.header.stamp - _start_time).toSec());      
+    
+    int box_curr = 0;
+    while(box_curr < corridor_obj->SFC[0].size() && 
+        corridor_obj->SFC[0][box_curr].second < t_s){
+        box_curr++;
+    }
+
+    if(box_curr >= corridor_obj->SFC[0].size()){
+        box_curr = corridor_obj->SFC[0].size() - 1;
+    }
+    visualization_msgs::MarkerArray mk_array;
+    visualization_msgs::Marker mk;
+    mk.header.frame_id = "map";
+    mk.ns = "mav_follower";
+    mk.type = visualization_msgs::Marker::CUBE;
+    mk.action = visualization_msgs::Marker::ADD;
+
+    mk.pose.orientation.x = 0.0;
+    mk.pose.orientation.y = 0.0;
+    mk.pose.orientation.z = 0.0;
+    mk.pose.orientation.w = 1.0;
+    for(int bi=0;bi<corridor_obj->SFC[0].size();bi++)
+    {
+        mk.id = bi;
+        std:vector<double> obstacle_box = corridor_obj->SFC[0][bi].first;
+        {
+            double margin = _mission.quad_size[0];
+            obstacle_box[0] -= margin;
+            obstacle_box[1] -= margin;
+            obstacle_box[2] -= margin;
+            obstacle_box[3] += margin;
+            obstacle_box[4] += margin;
+            obstacle_box[5] += margin;
+        }
+
+        mk.pose.position.x = (obstacle_box[0]+obstacle_box[3])/2.0;
+        mk.pose.position.y = (obstacle_box[1]+obstacle_box[4])/2.0;
+        mk.pose.position.z = (obstacle_box[2]+obstacle_box[5])/2.0;
+
+        mk.scale.x = obstacle_box[3]-obstacle_box[0];
+        mk.scale.y = obstacle_box[4]-obstacle_box[1];
+        mk.scale.z = obstacle_box[5]-obstacle_box[2];
+
+        mk.color.a = 0.2;
+        mk.color.r = 0.0;
+        mk.color.g = 0.0;
+        mk.color.b = 1.0;
+
+        mk_array.markers.emplace_back(mk);
+     }
+    obsBox_vis = mk_array;
+
+    _vis_obsBox_points.publish(obsBox_vis);
 }
