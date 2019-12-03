@@ -114,9 +114,11 @@ std::shared_ptr<InitTrajPlanner> initTrajPlanner_obj;
 std::shared_ptr<Corridor> corridor_obj;
 std::shared_ptr<RBPPlanner> RBPPlanner_obj;
 
+void timeMatrix_scale(double t, Eigen::MatrixXd& tm);
 bool checkSafeTrajectory(double check_time);
 int trajGeneration( double time_odom_delay);
 Vector3d getCommitedTarget();
+void timeScale();
 quadrotor_msgs::PolynomialTrajectory getBezierTraj();
 
 void getPosFromBezier(const MatrixXd& polyCoeff, const double& t_now, Vector3d& ret);
@@ -201,7 +203,7 @@ void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
     double t_s =  (odom_msg.header.stamp - _start_time).toSec();
 
     double x, y, z;
-    double update_period = 2.0;  // sec
+    double update_period = 5.0;  // sec
 
     if( cur_time < update_period )
     {
@@ -209,6 +211,7 @@ void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
     }
     else
     {
+
         x = (int)round((odom_msg.pose.pose.position.x));
         y = (int)round((odom_msg.pose.pose.position.y));
         z = (int)round((odom_msg.pose.pose.position.z));
@@ -381,6 +384,8 @@ int trajGeneration(double time_odom_delay)
         // ROS_WARN("Traj : [%d] : (%1.2f, %1.2f,%1.2f)", i, pt.x(), pt.y(), pt.z());
     }
 
+    // add target init_traj into initTrajPlanner_obj
+
     // Step 2: Generate SFC
     corridor_obj.reset(new Corridor(initTrajPlanner_obj, distmap_obj, _mission, _param));
     if (!corridor_obj.get()->update(_param.log)) {
@@ -419,6 +424,7 @@ int trajGeneration(double time_odom_delay)
     std::vector<double> data = RBPPlanner_obj->msgs_traj_coef[0].data;
     _PolyCoeff = Eigen::Map<Eigen::MatrixXd>(data.data(), rows, cols);
    
+   timeScale();
   
     quadrotor_msgs::PolynomialTrajectory traj;
     if(_PolyCoeff.rows() == 3 && _PolyCoeff.cols() == 3){
@@ -448,6 +454,46 @@ int trajGeneration(double time_odom_delay)
 
     _traj_id ++;
     return 1;
+}
+
+
+void timeScale(){
+
+    Eigen::MatrixXd coef_der;
+    double time_scale, time_scale_tmp, acc_max;
+    time_scale = 1;
+    // for(int qi = 0; qi < N; qi++){
+    //     for(int k = 0; k < outdim; k++) {
+    //         for (int m = 0; m < M; m++) {
+    //             derivative(qi, k, m, coef_der); //TODO: coef_def explanation
+
+    //             time_scale_tmp = scale_to_max_vel(qi, k, m, coef_der);
+    //             if(time_scale < time_scale_tmp) {
+    //                 time_scale = time_scale_tmp;
+    //             }
+
+    //             time_scale_tmp = scale_to_max_acc(qi, k, m, coef_der);
+    //             if(time_scale < time_scale_tmp) {
+    //                 time_scale = time_scale_tmp;
+    //             }
+    //         }
+    //     }
+    // }
+    int offset_seg = 6;
+    int index;
+    ROS_INFO_STREAM("Time scale: " << time_scale);
+    if(time_scale != 1){
+        for (int k = 0; k < 3; k++) {
+            for (int m = 0; m < _segment_num; m++) {
+                Eigen::MatrixXd tm;
+                timeMatrix_scale(1.0 / time_scale, tm);
+                _PolyCoeff.block(m * offset_seg, k, 5 + 1, 1) = tm * _PolyCoeff.block(m * offset_seg, k, 5 + 1, 1);
+            }
+        }
+        for (int m = 0; m < _segment_num+1; m++) {
+            _Time[m] = _Time[m] * time_scale;
+        }
+    }
 }
 
 bool checkEndOfCommitedTraj()
@@ -788,6 +834,15 @@ int main(int argc, char** argv)
     }
 }
 
+void timeMatrix_scale(double t, Eigen::MatrixXd& tm)
+{ 
+    int n = 5;
+    tm = Eigen::MatrixXd::Zero(n+1, n+1);
+
+    for(int i = 0; i < n+1; i++){
+        tm(i,i) = pow(t, n-i);
+    }
+}
 
 quadrotor_msgs::PolynomialTrajectory getBezierTraj()
 {
@@ -1116,6 +1171,8 @@ void visInitTraj(void) {
         mk.header.frame_id = "map";
         mk.header.stamp = ros::Time::now();
         mk.ns = "mav_follower";
+        mk.action = visualization_msgs::Marker::DELETEALL;
+        mk_array.markers.emplace_back(mk);
         mk.type = visualization_msgs::Marker::CUBE;
         mk.action = visualization_msgs::Marker::ADD;
 
@@ -1163,6 +1220,8 @@ void visobsBox( void ){
     visualization_msgs::Marker mk;
     mk.header.frame_id = "map";
     mk.ns = "mav_follower";
+    mk.action = visualization_msgs::Marker::DELETEALL;
+    mk_array.markers.emplace_back(mk);
     mk.type = visualization_msgs::Marker::CUBE;
     mk.action = visualization_msgs::Marker::ADD;
 

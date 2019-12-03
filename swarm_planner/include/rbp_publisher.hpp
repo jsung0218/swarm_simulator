@@ -28,6 +28,9 @@ namespace plt = matplotlibcpp;
 #include <mission.hpp>
 #include <param.hpp>
 
+#include <quadrotor_msgs/PositionCommand.h>
+#include <quadrotor_msgs/PolynomialTrajectory.h>
+
 class ResultPublisher {
 public:
     ResultPublisher(ros::NodeHandle _nh,
@@ -95,6 +98,11 @@ public:
         posdQuad_pub = nh.advertise<geometry_msgs::PoseStamped>("/pose_quad"+mav_name, 1);
         odom_pub = nh.advertise<nav_msgs::Odometry>("/odom_quad"+mav_name, 50);
 
+        /*  publish traj msgs to traj_server  */
+        _traj_pub = nh.advertise<quadrotor_msgs::PolynomialTrajectory>("trajectory_"+ mav_name, 10);
+      
+        quadrotor_msgs::PolynomialTrajectory traj;
+
         msgs_traj.resize(qn);
         msgs_relBox.resize(qn);
     }
@@ -102,6 +110,13 @@ public:
 
 
     void update(double current_time){
+        static double gFirstTime = current_time;
+        // if( current_time - gFirstTime > 1)
+        // {
+            update_traj_coef();
+            // gFirstTime = current_time;
+            ROS_WARN_THROTTLE( 1000, "[Target] publish trajectory polymialTrajectory");
+        // }
         update_traj(current_time);
         update_initTraj();
         update_obsBox(current_time);
@@ -168,6 +183,7 @@ private:
     ros::Publisher colBox_pub;
     ros::Publisher posdQuad_pub;
     ros::Publisher odom_pub;
+    ros::Publisher _traj_pub;
 
     // ROS messages
     std::vector<nav_msgs::Path> msgs_traj;
@@ -181,6 +197,8 @@ private:
     geometry_msgs::Vector3 msgs_acc_quad;
 
     nav_msgs::Odometry odom;
+
+    int _traj_id = 0;
 
     void timeMatrix(double current_time, int& index, Eigen::MatrixXd& polyder){
         double tseg = 0;
@@ -208,10 +226,75 @@ private:
         }
     }
 
+
+    quadrotor_msgs::PolynomialTrajectory getBezierTraj()
+    {
+        quadrotor_msgs::PolynomialTrajectory traj;
+        traj.action = quadrotor_msgs::PolynomialTrajectory::ACTION_ADD;
+        traj.num_segment = M;
+
+        int polyTotalNum = 0;
+        // for(auto order:_poly_orderList)
+        //     polyTotalNum += (order + 1);
+        int maxOrder = 5;
+        int poly_num1d = maxOrder + 1;
+        polyTotalNum = M*(maxOrder+1);
+        traj.coef_x.resize(polyTotalNum);
+        traj.coef_y.resize(polyTotalNum);
+        traj.coef_z.resize(polyTotalNum);
+
+        int idx = 0;
+        for(int i = 0; i < M; i++ )
+        {    
+            //int order = _poly_orderList[i];
+            
+            
+            for(int j =0; j < poly_num1d; j++)
+            { 
+                traj.coef_x[idx] = coef[0](j +i*poly_num1d,        0);
+                traj.coef_y[idx] = coef[0](j +i*poly_num1d,        1);
+                traj.coef_z[idx] = coef[0](j +i*poly_num1d,        2);
+                idx++;
+            }
+        }
+
+        traj.header.frame_id = "/bernstein";
+        traj.header.stamp = ros::Time::now();;
+
+        traj.time.resize(T.size());
+        traj.order.resize(M);
+
+        traj.mag_coeff = 1.0;
+
+        for (int idx = 0; idx < T.size(); ++idx){
+            traj.time[idx] = T[idx];
+        }
+        for (int idx = 0; idx < M; ++idx){
+            traj.order[idx] = 5;
+        }
+        
+        traj.start_yaw = 0.0;
+        traj.final_yaw = 0.0;
+
+        traj.trajectory_id = _traj_id++;
+        traj.action = quadrotor_msgs::PolynomialTrajectory::ACTION_ADD;
+
+        return traj;
+    }
+
+    void update_traj_coef(void)
+    {
+        quadrotor_msgs::PolynomialTrajectory traj;
+        traj = getBezierTraj();
+        _traj_pub.publish(traj);
+    }
+
     void update_traj(double current_time){
         if (current_time > T.back()) {
             return;
         }
+       
+
         for(int qi = 0; qi < qn; qi++) {
             int index = 0;
             Eigen::MatrixXd polyder;
@@ -279,9 +362,12 @@ private:
     void update_initTraj(){
         visualization_msgs::MarkerArray mk_array;
         for (int qi = 0; qi < qn; qi++) {
+            visualization_msgs::Marker mk;
+            mk.header.frame_id = "map";
+            mk.action = visualization_msgs::Marker::DELETEALL;
+            mk_array.markers.emplace_back(mk);
             for (int m = 0; m < M+1; m++) {
-                visualization_msgs::Marker mk;
-                mk.header.frame_id = "map";
+                
                 mk.header.stamp = ros::Time::now();
                 mk.ns = "mav" + std::to_string(qi);
                 mk.type = visualization_msgs::Marker::CUBE;
@@ -315,6 +401,7 @@ private:
 
     void update_obsBox(double current_time){
         visualization_msgs::MarkerArray mk_array;
+        
         for (int qi = 0; qi < qn; qi++){
             // find current obsBox number
             int box_curr = 0;
@@ -330,6 +417,8 @@ private:
             mk.header.frame_id = "map";
             mk.ns = "mav" + std::to_string(qi);
             mk.type = visualization_msgs::Marker::CUBE;
+            mk.action = visualization_msgs::Marker::DELETEALL;
+            mk_array.markers.emplace_back(mk);
             mk.action = visualization_msgs::Marker::ADD;
 
             mk.pose.orientation.x = 0.0;

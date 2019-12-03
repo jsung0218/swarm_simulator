@@ -147,11 +147,12 @@ public:
         
 
         if(state == INIT && fabs(_odom.pose.pose.position.z  - 1.0) < 0.1 )
+            // ROS_WARN("[TRAJ SERVER] Init state, pose of z less than 1.0");
             cmd_flag = true;
 
         if(state == INIT )
         {
-            //ROS_WARN("[TRAJ SERVER] Pub initial pos command");
+            // ROS_WARN("[TRAJ SERVER] Init state, Pub initial pos command");
             _cmd.position   = _odom.pose.pose.position;
             
             // if(!cmd_flag)
@@ -176,12 +177,10 @@ public:
             _vis_cmd.pose.position.y = _cmd.position.y;
             _vis_cmd.pose.position.z = _cmd.position.z;
             _vis_cmd_pub.publish(_vis_cmd);
-
+            // ROS_WARN("[TRAJ SERVER] Init state, return rcvOdometryCallback ");
             return;
         }
         // #2. try to publish command
-        // ROS_WARN("[ODOM] Enter just before pub function");
-        
         pubPositionCommand();
 
         // #3. try to calculate the new state
@@ -316,6 +315,7 @@ public:
     void pubPositionCommand()
     {
         // #1. check if it is right state
+        ROS_WARN("[SERVER] Enter pubPositionCommand");
         static int gCount = 0;
         static double first_time = ros::Time::now().toSec();
         if (state == INIT) return;
@@ -336,6 +336,7 @@ public:
             _cmd.acceleration.x = 0.0;
             _cmd.acceleration.y = 0.0;
             _cmd.acceleration.z = 0.0;
+            ROS_WARN("[SERVER] state hover");
         }
         // #2. locate the trajectory segment
         if (state == TRAJ)
@@ -383,6 +384,7 @@ public:
                             t, index, pva(0,0), pva(0,1), pva(0,2),
                             pva(1,0), pva(1,1), pva(1,2));
             */
+           ROS_WARN("[SERVER] state traj");
 
         }
         // #4. just publish

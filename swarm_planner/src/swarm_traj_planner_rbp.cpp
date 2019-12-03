@@ -20,6 +20,8 @@
 #include <rbp_planner.hpp>
 #include <rbp_publisher.hpp>
 
+
+
 bool has_octomap = false;
 bool has_path = false;
 std::shared_ptr<octomap::OcTree> octree_obj;
@@ -83,8 +85,8 @@ int main(int argc, char* argv[]) {
     z_max = 2;
 
 
-    rand_x = uniform_real_distribution<double>(x_min, x_max);
-    rand_y = uniform_real_distribution<double>(y_min, y_max);
+    rand_x = uniform_real_distribution<double>(x_min+2, x_max-2);
+    rand_y = uniform_real_distribution<double>(y_min+2, y_max-2);
     rand_z = uniform_real_distribution<double>(z_min, z_max);
 
     // Mission
@@ -120,7 +122,7 @@ int main(int argc, char* argv[]) {
             // Build 3D Euclidean Distance Field
             timer_step.reset();
             {
-                float maxDist = 2;
+                float maxDist = 3;
                 octomap::point3d min_point3d(param.world_x_min, param.world_y_min, param.world_z_min);
                 octomap::point3d max_point3d(param.world_x_max, param.world_y_max, param.world_z_max);
                 distmap_obj.reset(new DynamicEDTOctomap(maxDist, octree_obj.get(), min_point3d, max_point3d, false));
@@ -232,9 +234,12 @@ int main(int argc, char* argv[]) {
                 // while( dist < 5 || distObs <= 1)
                 while( dist < 5 )
                 {
-                    x = (int)round((rand_x(eng) - grid_x_min) / param.grid_xy_res);
-                    y = (int)round((rand_y(eng) - grid_y_min) / param.grid_xy_res);
-                    z = (int)round((rand_z(eng) - grid_z_min) / param.grid_z_res);
+                    // x = (int)round((rand_x(eng) - grid_x_min) / param.grid_xy_res) + grid_x_min;
+                    // y = (int)round((rand_y(eng) - grid_y_min) / param.grid_xy_res) + grid_y_min;
+                    // z = (int)round((rand_z(eng) - grid_z_min) / param.grid_z_res) + grid_z_min;
+                    x = (int)round((rand_x(eng))); 
+                    y = (int)round((rand_y(eng))); 
+                    z = (int)round((rand_z(eng)));
                     // x    = round(rand_x(eng) / 0.5;
                     // y    = rand_y(eng);
                     // z    = rand_z(eng);

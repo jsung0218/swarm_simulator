@@ -61,8 +61,9 @@ void pubOdom()
 	    odom.twist.twist.angular.y = 0.0;
 	    odom.twist.twist.angular.z = 0.0;
 	}
-	if (_cmd.trajectory_flag != quadrotor_msgs::PositionCommand::TRAJECTORY_STATUS_COMPLETED )
-	    _odom_pub.publish(odom);
+	/* if state is hover, send this messaeg.*/
+	// if (_cmd.trajectory_flag != quadrotor_msgs::PositionCommand::TRAJECTORY_STATUS_COMPLETED )
+	_odom_pub.publish(odom);
 }
 
 int main (int argc, char** argv) 

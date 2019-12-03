@@ -155,7 +155,8 @@ private:
         SFC.resize(mission.qn);
         for (size_t qi = 0; qi < mission.qn; ++qi) {
             std::vector<double> box_prev{0,0,0,0,0,0};
-
+            SFC[qi].clear();
+            ROS_WARN("SFC will be generated");
             for (int i = 0; i < initTraj[qi].size()-1; i++) {
                 auto state = initTraj[qi][i];
                 double x = state.x();
@@ -191,9 +192,12 @@ private:
                 expand_box(box, mission.quad_size[qi]);
 
                 SFC[qi].emplace_back(std::make_pair(box, -1));
+                ROS_WARN("SFC is added ", initTraj[qi].size()-1);
 
                 box_prev = box;
             }
+            ROS_WARN("SFC size : %d  ", SFC[qi].size());
+            
 
             // Generate box time segment
             int box_max = SFC[qi].size();

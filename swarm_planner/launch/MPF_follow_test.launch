@@ -34,7 +34,7 @@
   <arg name="world_resolution"      default="0.1"/>
 
   <!-- Obstacles -->
-  <arg name="world_obs_num"         default="10"/>
+  <arg name="world_obs_num"         default="15"/>
   <arg name="world_r_min"           default="0.6"/>
   <arg name="world_r_max"           default="0.6"/>
   <arg name="world_h_min"           default="2.0"/>
@@ -70,7 +70,7 @@
     <remap from="cloud_in" to="/random_map_generator/all_map" />
     <param name="resolution"                 value="0.1" />
     <param name="frame_id"                   value="map" type="string"/>
-    <param name="sensor_model/max_range"     value="10.0" />
+    <param name="sensor_model/max_range"     value="20.0" />
     <param name="height_map"                 value="false"/>
     <param name="color/r"                    value="0.2" />
     <param name="color/g"                    value="0.2" />
@@ -78,10 +78,11 @@
     <param name="color/a"                    value="0.2" />
   </node>
 
-  <node pkg="octomap_server" type="octomap_server_node" name="octomap_server" args="$(find swarm_planner)/worlds/$(arg replay_map)" if="$(arg replay)">
+  <node pkg="octomap_server" type="octomap_server_node" name="octomap_server_replay" args="$(find swarm_planner)/worlds/$(arg replay_map)" if="$(arg replay)">
+    <remap from="/octomap_point_cloud_centers" to="/random_map_generator/all_map" />
     <param name="resolution"                 value="0.1" />
     <param name="frame_id"                   value="map" type="string"/>
-    <param name="sensor_model/max_range"     value="10.0" />
+    <param name="sensor_model/max_range"     value="20.0" />
     <param name="height_map"                 value="false"/>
     <param name="color/r"                    value="0.2" />
     <param name="color/g"                    value="0.2" />
@@ -192,7 +193,7 @@
       <param name="demoParam/target_x"     value="$(arg end_x)" />
       <param name="demoParam/target_y"     value="$(arg end_y)" />
       <param name="demoParam/target_z"     value="$(arg end_z)" />
-      <param name="demoParam/goal_input"   value="true"  />
+      <param name="demoParam/goal_input"   value="false"  />
       <param name="demoParam/is_limit_vel" value="true"  />
       <param name="demoParam/is_limit_acc" value="false" />
       <param name="demoParam/is_print"     value="false" />
@@ -214,6 +215,11 @@
     <param name="init_z"  value="$(arg init_z)"/>
   </node>
 
+  <node pkg = "waypoint_generator" name = "waypoint_generator" type = "waypoint_generator" output = "screen">
+          <remap from="~odom" to="/odom/fake_odom"/>        
+          <remap from="~goal" to="/goal"/>
+          <param name="waypoint_type" value="manual"/>    
+  </node>
   <node pkg="odom_visualization" name="odom_visualization" type="odom_visualization" output="screen">
           <remap from="~cmd"  to="/position_cmd"/>
           <param name="color/a" value="0.8"/>    

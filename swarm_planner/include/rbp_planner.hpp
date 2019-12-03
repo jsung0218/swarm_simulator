@@ -228,23 +228,23 @@ private:
         Eigen::MatrixXd coef_der;
         double time_scale, time_scale_tmp, acc_max;
         time_scale = 1;
-        for(int qi = 0; qi < N; qi++){
-            for(int k = 0; k < outdim; k++) {
-                for (int m = 0; m < M; m++) {
-                    derivative(qi, k, m, coef_der); //TODO: coef_def explanation
+        // for(int qi = 0; qi < N; qi++){
+        //     for(int k = 0; k < outdim; k++) {
+        //         for (int m = 0; m < M; m++) {
+        //             derivative(qi, k, m, coef_der); //TODO: coef_def explanation
 
-                    time_scale_tmp = scale_to_max_vel(qi, k, m, coef_der);
-                    if(time_scale < time_scale_tmp) {
-                        time_scale = time_scale_tmp;
-                    }
+        //             time_scale_tmp = scale_to_max_vel(qi, k, m, coef_der);
+        //             if(time_scale < time_scale_tmp) {
+        //                 time_scale = time_scale_tmp;
+        //             }
 
-                    time_scale_tmp = scale_to_max_acc(qi, k, m, coef_der);
-                    if(time_scale < time_scale_tmp) {
-                        time_scale = time_scale_tmp;
-                    }
-                }
-            }
-        }
+        //             time_scale_tmp = scale_to_max_acc(qi, k, m, coef_der);
+        //             if(time_scale < time_scale_tmp) {
+        //                 time_scale = time_scale_tmp;
+        //             }
+        //         }
+        //     }
+        // }
 
         ROS_INFO_STREAM("Time scale: " << time_scale);
         if(time_scale != 1){
