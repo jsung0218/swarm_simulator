@@ -8,13 +8,14 @@
   <!-- <arg name="mission"               default="mission_8agents_15.json"/> -->
   <arg name="mission"               default="mission_1agents_MPF.json"/>
   <arg name="mission_follwer"       default="mission_1agents_MPF2.json"/>
-  <arg name="replay"                default="false"/>
+  <arg name="replay"                default="true"/>
   <arg name="replay_map"            default="replay_target_follow_1.bt"/>
   <arg name="master_name"            default="master"/>
   <arg name="slave_name"            default="slave"/>
   <arg name="enable_follower"       default="true" />
   <arg name="enable_target"       default="true" />
   <arg name="rviz_name"             default="rviz_config_follow.rviz" />
+  <arg name="enable_rqtplot"        default="false" />
   
   <arg name="init_x" default="-8.0"/>
   <arg name="init_y" default="-4.0"/>
@@ -232,6 +233,9 @@
   </node>
 
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find swarm_planner)/launch/rviz_config/$(arg rviz_name)" if="$(arg runsim)"/>
+  <node pkg="rqt_plot" type="rqt_plot" name="position" args="/position_cmd/position/x:y:z" if="$(arg enable_rqtplot)"/>
+  <node pkg="rqt_plot" type="rqt_plot" name="velocity" args="/position_cmd/velocity/x:y:z" if="$(arg enable_rqtplot)"/>
+  <node pkg="rqt_plot" type="rqt_plot" name="acceleration" args="/position_cmd/acceleration/x:y:z" if="$(arg enable_rqtplot)"/>
 
 <!-- Nodes End -->
 </launch>

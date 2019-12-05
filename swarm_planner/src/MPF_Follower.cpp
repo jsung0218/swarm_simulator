@@ -287,14 +287,14 @@ void rcvOdometryCallBack(const nav_msgs::Odometry odom)
     static ros::Time gFirstTime = ros::Time::now();
     double dist = getDis(_start_pos, _commit_target);
     double duration_time;
-    if(gCount++%50 == 0 )
-    {
+    // if(gCount++%50 == 0 )
+    // {
         duration_time = ros::Time::now().toSec() - gFirstTime.toSec();
-        ROS_INFO("[My] (%1.2fsec) Dist : %1.2f (%1.2f,%1.2f,%1.2f), (%1.2f,%1.2f,%1.2f)", 
+        ROS_INFO_THROTTLE(1000, "[FOLLOWER] (%1.1fsec) Dist : %1.2f s(%1.1f,%1.1f,%1.1f), c(%1.1f,%1.1f,%1.1f)", 
                     duration_time, dist, _start_pos.x(), _start_pos.y(), _start_pos.z(), 
                     _commit_target.x(), _commit_target.y(), _commit_target.z());
                             
-    }
+    // }
     
     if( _is_traj_exist && dist < _eps )
     {
@@ -1165,14 +1165,16 @@ void visCtrlPoint(MatrixXd polyCoeff)
 
 void visInitTraj(void) {
     visualization_msgs::MarkerArray mk_array;
+    visualization_msgs::Marker mk;
+
+    mk.action = visualization_msgs::Marker::DELETEALL;
+    mk_array.markers.emplace_back(mk);
     for(int i = 0; i < _segment_num; i++)
     {   
-        visualization_msgs::Marker mk;
         mk.header.frame_id = "map";
         mk.header.stamp = ros::Time::now();
         mk.ns = "mav_follower";
-        mk.action = visualization_msgs::Marker::DELETEALL;
-        mk_array.markers.emplace_back(mk);
+        
         mk.type = visualization_msgs::Marker::CUBE;
         mk.action = visualization_msgs::Marker::ADD;
 

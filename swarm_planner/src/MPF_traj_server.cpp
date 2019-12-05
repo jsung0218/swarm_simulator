@@ -23,6 +23,7 @@ using namespace std;
 
 int _poly_order_min, _poly_order_max;
 typedef enum ServerState{INIT, TRAJ, HOVER} e_ServerState;
+
 class TrajectoryServer
 {
 private:
@@ -38,7 +39,8 @@ private:
     ros::Publisher _vis_acc_pub;
     ros::Publisher _vis_traj_pub;
     ros::Publisher _vis_traj_points;
-    
+    ros::Timer _server_timer;
+
     // configuration for trajectory
     int _n_segment = 0;
     int _traj_id = 0;
@@ -52,10 +54,10 @@ private:
     ros::Time _final_time = ros::TIME_MIN;
     ros::Time _start_time = ros::TIME_MAX;
     double _start_yaw = 0.0, _final_yaw = 0.0;
-
+    double _server_timer_rate = 10.0;    // 10hz
     // state of the server
-    e_ServerState state = INIT;
-    e_ServerState state_prev = INIT;;
+    static e_ServerState state; 
+    static e_ServerState state_prev; 
     
     nav_msgs::Odometry _odom;
     quadrotor_msgs::PositionCommand _cmd;
@@ -97,7 +99,12 @@ public:
 
         _vis_traj_points = 
             handle.advertise<sensor_msgs::PointCloud2>("trajectory_vis_points", 1);
-        
+
+        /* timer */
+        _server_timer = handle.createTimer(ros::Duration(1.0/_server_timer_rate), serverCallBack);
+
+
+
         double pos_gain[3] = {5.7, 5.7, 6.2};
         double vel_gain[3] = {3.4, 3.4, 4.0};
         setGains(pos_gain, vel_gain);
@@ -123,6 +130,13 @@ public:
         _vis_traj.points.clear();
     }
 
+
+    static void serverCallBack(const ros::TimerEvent& event)
+    {
+        ROS_WARN_THROTTLE(2, " [SERVER:serverCallBack] State is %d", state);
+        ROS_WARN_COND( state != state_prev, " [SERVER:serverCallBack] State is changed from %d, to %d",
+                         state, state_prev);
+    }
     // not used
     void setGains(double pos_gain[3], double vel_gain[3])
     {
@@ -135,10 +149,18 @@ public:
         _cmd.kv[_DIM_z] = vel_gain[_DIM_z];
     }
 
+
     bool cmd_flag = false;
     // after recieving odem, position cmd is published according to state except ACTION
     void rcvOdometryCallback(const nav_msgs::Odometry & odom)
     {
+        if (state_prev !=state)
+        {
+            ROS_WARN(" [SERVER:rcvOdometryCallback] State is changed from %d to %d",
+             state_prev, state);
+        }
+        state_prev = state;
+
         if (odom.child_frame_id == "X" || odom.child_frame_id == "O") return ;
         // #1. store the odometry
         _odom = odom;
@@ -300,22 +322,14 @@ public:
             state = HOVER;
             _traj_flag = quadrotor_msgs::PositionCommand::TRAJECTORY_STATUS_IMPOSSIBLE;
         }
-        if (state_prev !=state)
-        {
-            // ROS_WARN(" State is changed from %d to %d", state_prev, state);
-            // for (int idx = 0; idx < _n_segment; ++idx)
-            // {
-            //     ROS_WARN(" [%d] : %1.2f" , idx, _Time(idx) );
-            // }
-        }
-        state_prev = state;
+        
         // ROS_WARN("[subTraj] exit function %d", state);
     }
 
     void pubPositionCommand()
     {
         // #1. check if it is right state
-        ROS_WARN("[SERVER] Enter pubPositionCommand");
+        //ROS_WARN("[SERVER] Enter pubPositionCommand");
         static int gCount = 0;
         static double first_time = ros::Time::now().toSec();
         if (state == INIT) return;
@@ -336,7 +350,7 @@ public:
             _cmd.acceleration.x = 0.0;
             _cmd.acceleration.y = 0.0;
             _cmd.acceleration.z = 0.0;
-            ROS_WARN("[SERVER] state hover");
+            //ROS_WARN("[SERVER] state hover");
         }
         // #2. locate the trajectory segment
         if (state == TRAJ)
@@ -384,7 +398,7 @@ public:
                             t, index, pva(0,0), pva(0,1), pva(0,2),
                             pva(1,0), pva(1,1), pva(1,2));
             */
-           ROS_WARN("[SERVER] state traj");
+           //ROS_WARN("[SERVER] state traj");
 
         }
         // #4. just publish
@@ -495,6 +509,9 @@ public:
         _vis_acc_pub.publish(_vis_acc);
     }
 };
+
+e_ServerState TrajectoryServer::state = INIT;
+e_ServerState TrajectoryServer::state_prev = INIT;
 
 int main(int argc, char ** argv)
 {
