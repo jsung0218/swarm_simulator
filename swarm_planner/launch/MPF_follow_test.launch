@@ -31,7 +31,7 @@
   <arg name="world_z_min"           default="0.0"/>
   <arg name="world_x_max"           default="10"/>
   <arg name="world_y_max"           default="10"/>
-  <arg name="world_z_max"           default="2.5"/>
+  <arg name="world_z_max"           default="5"/>
   <arg name="world_resolution"      default="0.1"/>
 
   <!-- Obstacles -->
@@ -45,7 +45,7 @@
   <!-- InitTrajPlanner Parameters -->
   <arg name="ecbs_w"                default="1.3"/>
   <arg name="grid_xy_res"           default="0.5"/>
-  <arg name="grid_z_res"            default="1.0"/>
+  <arg name="grid_z_res"            default="0.5"/>
   <arg name="grid_margin"           default="0.2"/>
 
   <!-- Corridor Parameters-->

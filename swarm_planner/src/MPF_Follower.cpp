@@ -150,6 +150,53 @@ void octomapCallback(const octomap_msgs::Octomap& octomap_msg)
     }
 }
 
+bool searchValidTarget(  const Vector3d& master_pt, const Vector3d& dir_pt, Vector3d& ret, double thre_dist ) 
+{
+    double distObs = 0.0;
+    Vector3d new_pt;
+    int cnt = 0;
+    Eigen::Quaterniond quats;
+    Eigen::Quaterniond p;
+    ROS_INFO(" [searchValidTarget] entered");   
+    double x,y,z;
+    
+    do
+    {
+        p.w() = 0;
+        p.vec() = -dir_pt;
+        quats.w() = 15.0*3.14/180*cnt;
+        
+        quats.vec() = Vector3d(0.0,0.0,1.0);
+        quats.normalize();
+        Matrix3d rot_mat = quats.toRotationMatrix();
+
+        Quaterniond rotatedP = quats*p*quats.inverse();
+        Vector3d rotate_pt = rotatedP.vec();
+        new_pt = master_pt+rotate_pt;
+        ROS_WARN(" Master Target : (%1.2f,%1.2f,%1.2f)", master_pt.x(), master_pt.y(), master_pt.z() );
+        ROS_WARN(" dir : (%1.2f,%1.2f,%1.2f)", dir_pt.x(), dir_pt.y(), dir_pt.z() );
+        ROS_WARN(" rotated dir : (%1.2f,%1.2f,%1.2f)", rotate_pt.x(), rotate_pt.y(), rotate_pt.z() );
+        ROS_WARN(" follower Target : (%1.2f,%1.2f,%1.2f)", new_pt.x(), new_pt.y(), new_pt.z() );
+    
+        x = (double)round( new_pt.x() );
+        y = (double)round( new_pt.y() );
+        z = (double)round( new_pt.z() );
+        distObs = distmap_obj.get()->getDistance( octomap::point3d(x, y, z) );
+        assert(distObs>=0);
+        new_pt.x() = x;
+        new_pt.y() = y;
+        new_pt.z() = z;
+
+        cnt ++;
+        if(cnt == 8) 
+        {
+            return false;
+        }
+    } while ( distObs < thre_dist);
+    ret = new_pt;
+    return true;
+
+}
 
 void rcvWaypointsCallBack(const nav_msgs::Path & wp)
 {   
@@ -200,8 +247,9 @@ void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
 
     static double first_time = ros::Time::now().toSec();
     double cur_time = ros::Time::now().toSec() - first_time;
-    double t_s =  (odom_msg.header.stamp - _start_time).toSec();
 
+    
+    
     double x, y, z;
     double update_period = 5.0;  // sec
 
@@ -211,11 +259,19 @@ void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
     }
     else
     {
-
-        x = (int)round((odom_msg.pose.pose.position.x));
-        y = (int)round((odom_msg.pose.pose.position.y));
-        z = (int)round((odom_msg.pose.pose.position.z));
-
+        Vector3d target_pt;
+        Vector3d master_pt(odom_msg.pose.pose.position.x,odom_msg.pose.pose.position.y,odom_msg.pose.pose.position.z);
+        Vector3d dir_pt(2,0,0);
+        if( !searchValidTarget( master_pt, dir_pt, target_pt, 0.7 ) )
+        {
+            ROS_WARN("Can't find target pos !!!");
+            return;
+        }
+            
+        x = (double)round( target_pt.x() );
+        y = (double)round( target_pt.y() );
+        z = (double)round( target_pt.z() );
+       
         _end_pos = {x,y,2};
         
         Vector3d dir_vec;
@@ -233,7 +289,7 @@ void odomTargetCallback(const nav_msgs::Odometry& odom_msg)
 
     
         ROS_WARN("[odomTargetCallback] %1.2fs End P(%1.2f,%1.2f,%1.2f),V(%1.2f,%1.2f,%1.2f)", 
-                            t_s, _end_pos(0), _end_pos(1),_end_pos(2),
+                            cur_time, _end_pos(0), _end_pos(1),_end_pos(2),
                                 _end_vel(0), _end_vel(1),_end_vel(2) );
 
     }
